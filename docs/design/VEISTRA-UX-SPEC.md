@@ -47,9 +47,9 @@ Every region inside the workspace band is `bg-surface-1` (`#141415` dark / `#fff
 
 Left to right, `padding-left: 12px`, no right padding (window controls are flush right):
 
-- **Veistra mark**, `18×18` SVG (viewBox `0 0 24 24`): three-tone fruit — `mark-skin` outer body path,
-  `mark-flesh` inner body path stroked `#0f0f10` (ground colour) at width `0.9`, `mark-seed` circle
-  (`cx 12 cy 13.7 r 2.9`) also stroked at `0.9`. Identical markup in every board.
+- **Veistra mark**, `18×18` SVG (viewBox `0 0 24 24`): the closed EI, one path with two slots as
+  counters, `currentColor`. Identical markup in every board. (Boards drawn before October 2026 show
+  the avocado.)
 - **Menu bar**, `margin-left: 10px`, `gap: 2px`, items File/Edit/View/Run/Terminal/Help (v3) — K-Shell
   additionally has an "Apps" item between Edit and View, styled as the active menu (`bg #1d1f20`,
   `color #e4e6e6`), which v3 boards drop entirely. Each item: `13px`, `color #cacdce` (txt-secondary);
@@ -518,7 +518,7 @@ interpolates the project name).
 | **Dialog** | New cluster (980px, 2-col), Switch project (620px, dropped from title pill), New Project (full-page, not modal) | `radius-xl`(12px), `shadow-overlay` | backdrop `bg-backdrop`; header/body/footer 3-part layout; footer holds ghost Cancel + primary confirm |
 | **Comment pin/card** *(new)* | open, resolved, with/without screenshot | pin badge ~20×20 rounded-square-with-notch | open pin `accent`/muted-grey when resolved; state label `txt-info`(open)/`txt-success`(resolved) |
 | **Chart primitives (C1–C6)** | line (C1), donut (C2), horizontal bar (C3), 3× "from the bill" placeholder (C4–6) | via Apache ECharts per written spec | `chart-1`…`chart-6`, `chart-grid`; budget line uses `danger` directly, not a chart token |
-| **Cover** | n/a — design-system card-cover generator, not an app UI component | 960×288 | uses `mark-skin`/`mark-flesh`/`mark-seed`/`accent`/`accent-subtle`/`txt-primary`, region/pill radii — informative for icon/brand tiling only |
+| **Cover** | n/a — design-system card-cover generator, not an app UI component | 960×288 | uses `mark-rust`/`accent`/`accent-subtle`/`txt-primary`, region/pill radii — informative for icon/brand tiling only |
 
 ---
 
@@ -589,8 +589,7 @@ interpolates the project name).
 `#f0c674`/`#8a5a00` · string `#9fd89a`/`#23803b` · number `#e8a868`/`#a85a14` · comment `#7a8185`/
 `#767c7f` (grey, not green).
 
-**Brand mark** (never in UI chrome): `mark-skin` `#5c8a2f`/`#3f6020` · `mark-flesh` `#d0e878`/
-`#8fae35` · `mark-seed` `#8a5524`/`#5e3a18`.
+**Brand mark** (never in UI chrome): `mark-rust` `#b4442e`.
 
 ### 4.2 Type scale
 | Style | Size | Line-height | Weight | Family | Sample usage |

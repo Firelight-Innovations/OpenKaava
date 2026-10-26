@@ -189,7 +189,7 @@ changed it and watched nothing happen.
 | `product.name` | the generated modules, `branding.rs`, and five checked files |
 | `product.wordmark` | the generated modules, and `splash.html`'s check |
 | `product.tagline` | Home's hero, and nothing else |
-| `product.company` | `splash.html`'s check, beside the wordmark |
+| `product.company` | nothing today; the splash used to set it beside the wordmark |
 | `product.copyright` | `splash.html`'s check, the notice in its band |
 | `assets.mark` | the generator, which lifts its path data into the modules |
 | `assets.mark-colour` | `Mark` in `apps/home/ui/src/icons.tsx`, by hand |
@@ -200,9 +200,7 @@ changed it and watched nothing happen.
 case, because a stylesheet that draws the wordmark may uppercase it. The markup
 holds "Veistra" so a screen reader is handed a word; the screen shows "VEISTRA".
 `apps/home/ui/src/home.css` makes that trade for the lockup. `splash.html` sets
-the wordmark as written, with its ™ in a span of its own, and makes the trade
-for `product.company` instead: the markup holds "Veistra", the screen shows
-"VEISTRA". The company carries no ™; the product name does.
+the wordmark as written, with its ™ in a span of its own, and nothing beside it.
 
 The splash while boot works, settled and a moment after it opens (672x492, the
 window's size, rendered from `splash.html` in Chromium):
@@ -255,7 +253,7 @@ prose because the list is also the trademark surface.
 | `src-tauri/tauri.conf.json` | `productName` — also the installer's filename |
 | `src-tauri/tauri.conf.json` | the main window's `title` |
 | `veistra.toml` | `[stack] name` |
-| `splash.html` | the wordmark text node, the company beside it, and the copyright notice |
+| `splash.html` | the wordmark text node and the copyright notice |
 | the title bar | the centred title, and the About item |
 | Home | the lockup word and the tagline |
 | Files | the purge confirmation, which names the product |
@@ -271,31 +269,25 @@ prose because the list is also the trademark surface.
   complicated mark belongs on a surface that loads it as a file. It also lifts
   `d` and nothing else, so a `fill-rule` on the source path is dropped silently:
   a counter has to work under the default nonzero rule, by winding.
-- `assets/veistra-mark-colour.svg` — the same mark in its three tones, which the
-  generator cannot reduce and so does not compile in. Its one reader is `Mark`
-  in `apps/home/ui/src/icons.tsx`, which inlines the geometry by hand so the
-  hairlines between the tones can be `var(--bg)`. Changing the mark means
-  changing both files; the silhouette is the one the generator checks.
+- `assets/veistra-mark-colour.svg` — the same mark in brand rust, which the
+  generator does not compile in. Its one reader is `Mark` in
+  `apps/home/ui/src/icons.tsx`, which inlines the geometry by hand so the fill
+  can be `var(--mark-rust)`. Changing the mark means changing both files; the
+  silhouette is the one the generator checks.
 - `assets/app-icon-source.svg` — what `pnpm tauri icon` draws the PNG set from.
-- `assets/veistra-icon.svg`, `veistra-icon-256.svg` — the container-icon variants
-  from the brand packet, drawn as the same tile at 24 and at 256. All three
-  tiles place the mark by its **ink**, not its viewBox: the silhouette is 19.2
-  of its 24 units tall, so a transform sized against the box leaves a third of
-  the tile empty and the avocado reads as a stamp floating in a square. They
-  scale it to leave 11.7% of the tile clear above and below — on the 256 tile,
-  `translate(5.333 5.333) scale(10.2222)`. Change the mark's geometry and these
-  three numbers have to be recomputed; nothing checks them. There was a
-  third, a textured variant, which stippled grain over the whole tile; it
-  is gone, because the tile's ground is now a two-stop radial falloff and that
-  falloff is the only thing drawing the icon's edge. Grain laid over it fights
-  the edge it is there to make.
+- `assets/veistra-icon.svg`, `veistra-icon-256.svg` — the container-icon variants,
+  the brand packet's black tile (ink ground `#0B0C0E`, paper mark `#F2F4F5`) at
+  24 and at 256. The mark is 48% of the tile wide at 256 and 56% at 24, and the
+  corner radius is 9% of the tile. `src-tauri/icons/` is drawn from the same
+  geometry by `export_app_icons.py` in the company folder's
+  `tools/brand-mark-design/scripts/`.
 - `src-tauri/icons/` — the generated icon set. Every path in `bundle.icon` is
   checked to sit inside this directory and to exist.
 - the typefaces, inlined as base64 woff2 subsets in `splash.html`. They are
   the one asset with no path to declare, because they are not files; the
   comment above them gives the `pyftsubset` command that regenerates them.
 - the mark on the splash. `splash.html` cannot load `assets/`, so it carries its
-  own copy of the geometry: the skin outline and the seed its art script draws
+  own copy of the geometry: the block and the two slots its art script draws
   the mark from, and the fallback SVG it shows when it cannot draw. Both are
   monochrome, in the text colour. Changing the mark means changing both copies;
   nothing checks it.
@@ -327,21 +319,13 @@ Generating the geometry makes `assets/veistra-mark.svg` the actual source rather
 than the nominal one, and a fork replaces one SVG instead of finding two string
 literals.
 
-**Home's lockup is the exception, and it is the colour that buys it.** The mark
-has a three-tone version, and Home draws it at 52px — the only surface in the
-product large enough for the hairlines between the tones to survive. The
-generator cannot carry it: reducing the mark to one path is what lets every
-other surface draw it in `currentColor`, and three drawables do not reduce. So
-`Mark` in `apps/home/ui/src/icons.tsx` writes that geometry out, and
-`assets/veistra-mark-colour.svg` is the file it is a copy of. Two files to keep in
-step is the price; the argument above still holds for the silhouette, which is
-what the other four call sites draw and what the generator still checks.
-
-Loading the colour file as an `<img>` fails for a second reason on top of the
-first. The hairline between the tones is *the background*, not a colour — `--bg`
-on Home, `--surface` if it were ever drawn on a bar. Inline SVG resolves a CSS
-variable in a `stroke`; an `<img>` resolves nothing, so the file on disk has to
-commit to a literal and every surface it does not match gets a visible seam.
+**Home's lockup is the exception, and it is the colour that buys it.** Home
+draws the mark at 52px in brand rust, where every other surface draws it in
+`currentColor`. The generator carries one path and no colour decision. So `Mark`
+in `apps/home/ui/src/icons.tsx` writes the geometry out with `var(--mark-rust)`,
+and `assets/veistra-mark-colour.svg` is the file it is a copy of. Two files to
+keep in step is the price; the argument above still holds for the silhouette,
+which is what the other four call sites draw and what the generator still checks.
 
 ---
 

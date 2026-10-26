@@ -146,18 +146,10 @@
      `ux/tokens` to fold into the next `tokens.json` pass. */
   --syn-rust: #e5734b;
 
-  /* --- colour: the mark ---------------------------------------------------
-     Brand colours, never used in the interface (see `README.md`'s Mark
-     section). Theme-reactive, like every other colour token here — the
-     `-light` names below stay put for the one reader that wants the light
-     trio regardless of the current theme (`Mark` in
-     `apps/home/ui/src/icons.tsx`, on Home's bone-ground lockup). */
-  --mark-skin: #5c8a2f;
-  --mark-flesh: #d0e878;
-  --mark-seed: #8a5524;
-  --mark-skin-light: #3f6020;
-  --mark-flesh-light: #8fae35;
-  --mark-seed-light: #5e3a18;
+  /* The mark's brand colour, never used in the interface (see `README.md`'s Mark
+     section). The same rust in both themes. Its one reader is `Mark` in
+     `apps/home/ui/src/icons.tsx`, on Home's lockup. */
+  --mark-rust: #b4442e;
 
   /* --- type ---------------------------------------------------------------
      Font families are the tokens named directly. The scale below is not in
@@ -357,10 +349,6 @@
   --syn-number: #a85a14;
   --syn-comment: #767c7f;
   --syn-rust: #b8392f;
-
-  --mark-skin: #3f6020;
-  --mark-flesh: #8fae35;
-  --mark-seed: #5e3a18;
 }
 
 * {

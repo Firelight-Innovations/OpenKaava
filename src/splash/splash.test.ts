@@ -97,10 +97,14 @@ describe("splash.html lockup and band", () => {
     expect(splash).toMatch(/U\+0061-007A, U\+2122\s+the wordmark/);
   });
 
-  // The wordmark carries the trademark sign; the company line beside it, which
-  // has the same name, does not.
-  it("sets the company without a trademark sign", () => {
-    expect(splash).toContain('<span class="splash__company">Veistra</span>');
+  // The lockup is the wordmark alone: the divider and the uppercase company
+  // label that used to sit beside it are gone, markup and styles both.
+  it("holds the wordmark alone, with no divider or company label", () => {
+    const lockup = /<div class="splash__lockup">([\s\S]*?)<\/div>/.exec(splash)?.[1] ?? "";
+    expect(lockup.trim()).toBe(
+      '<p class="splash__wordmark">Veistra<span class="splash__tm">™</span></p>',
+    );
+    expect(splash).not.toMatch(/splash__(rule|company)/);
   });
 
   // package.json is the one source of the version: tauri.conf.json reads it,
