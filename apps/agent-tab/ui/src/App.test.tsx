@@ -2216,17 +2216,22 @@ describe("naming the chat", () => {
 
   const titles = () =>
     bridge.invoke.mock.calls.filter(([m]) => m === "veistra/title").map(([, p]) => p);
+  // Indexed rather than `.at(-1)`: CI type-checks against ES2021.
+  const lastTitle = () => {
+    const all = titles();
+    return all[all.length - 1];
+  };
 
   it("/rename names the tab over its first prompt, keeps it, and sends nothing to the agent", async () => {
     backend(ONE_PROMPT);
     render(<App />);
     await screen.findByText("Hello!");
-    await waitFor(() => expect(titles().at(-1)).toMatchObject({ title: "Hello!" }));
+    await waitFor(() => expect(lastTitle()).toMatchObject({ title: "Hello!" }));
     await type("/rename  balls ");
     expect(await screen.findByText("Session renamed to: balls")).toBeTruthy();
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/set-session-meta", { name: "balls" });
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/history-save");
-    expect(titles().at(-1)).toMatchObject({ title: "balls" });
+    expect(lastTitle()).toMatchObject({ title: "balls" });
     expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/send", expect.anything());
     expect(bridge.invoke).not.toHaveBeenCalledWith("agent-tab/cli-command", expect.anything());
   });
@@ -2245,7 +2250,7 @@ describe("naming the chat", () => {
       "agent-tab/session-meta": () => Promise.resolve({ name: "balls" }),
     });
     render(<App />);
-    await waitFor(() => expect(titles().at(-1)).toMatchObject({ title: "balls" }));
+    await waitFor(() => expect(lastTitle()).toMatchObject({ title: "balls" }));
   });
 
   it("re-reads them when the Agents page renames or restores the session", async () => {
@@ -2255,7 +2260,7 @@ describe("naming the chat", () => {
     await screen.findByText("Hello!");
     meta = { name: "from the sidebar" };
     act(() => bridge.listeners.get("agent-tab:restored")?.({ instanceId: "i" }));
-    await waitFor(() => expect(titles().at(-1)).toMatchObject({ title: "from the sidebar" }));
+    await waitFor(() => expect(lastTitle()).toMatchObject({ title: "from the sidebar" }));
   });
 
   it("takes a name the agent gives the conversation, but not one it had before", async () => {
@@ -2280,8 +2285,8 @@ describe("naming the chat", () => {
       "agent-tab/session-meta": () => Promise.resolve({ name: "balls" }),
     });
     render(<App />);
-    await waitFor(() => expect(titles().at(-1)).toMatchObject({ title: "balls" }));
+    await waitFor(() => expect(lastTitle()).toMatchObject({ title: "balls" }));
     await type("/clear");
-    await waitFor(() => expect(titles().at(-1)).not.toMatchObject({ title: "balls" }));
+    await waitFor(() => expect(lastTitle()).not.toMatchObject({ title: "balls" }));
   });
 });
