@@ -30,12 +30,10 @@
 
    The **status bar** keeps reporting while a transient surface is up, which is
    the behaviour every one of them in this shell has; searchOverlay.css states
-   the same rule in its own header. It is also where the sliders glyph that
-   opens settings lives, so covering it would hide the control that got you
-   here.
+   the same rule in its own header.
 
-   z-index 60 clears everything: the search overlay sits at 20, the status bar's
-   popover at 20, and detached-window chrome below both. */
+   z-index 60 clears everything: the search overlay sits at 20, and
+   detached-window chrome below it. */
 
 .settings__backdrop {
   position: fixed;

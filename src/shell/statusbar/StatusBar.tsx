@@ -1,10 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 import type { GitStatus, UpdateNotice } from "../contract";
 import type { Environment } from "../environment";
 import { ENVIRONMENT_BAR_LABEL } from "../environment";
-import { Sliders } from "../../ui/Icon";
-import SettingsPopover from "./SettingsPopover";
 import ReviewMergeButton from "./ReviewMergeButton";
 import "./statusbar.css";
 
@@ -40,14 +37,12 @@ export interface StatusBarProps {
 /**
  * Left cluster, then right cluster, per §1.9: project name, branch/
  * environment and the diff-stat readout on the left; the update notice,
- * GitHub status, "main is read-only" and settings on the right. The bar's own
+ * GitHub status and "main is read-only" on the right. The bar's own
  * height is `.frame__statusbar`'s — this component only lays out its
  * contents and never touches that box.
  *
- * Settings is the shell's only entry point for it: there is no left rail,
- * and settings moved here when the rail was removed. Kept rightmost, past
- * the spec's own right-cluster chips, since it predates this rework and the
- * spec has no board that draws it.
+ * Settings is not here; it opens from Ctrl+, until the title bar has its own
+ * button.
  */
 export default function StatusBar({
   project,
@@ -57,33 +52,11 @@ export default function StatusBar({
   update,
   onReviewAndMerge,
 }: StatusBarProps) {
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const settingsWrapRef = useRef<HTMLDivElement>(null);
-
-  // Dismiss like every other popover in the shell: a click outside, or Escape.
-  useEffect(() => {
-    if (!settingsOpen) return;
-
-    const onPointerDown = (e: PointerEvent) => {
-      if (!settingsWrapRef.current?.contains(e.target as Node)) setSettingsOpen(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSettingsOpen(false);
-    };
-
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [settingsOpen]);
-
   return (
     <div className="statusbar">
       {/* The left cluster is one flex child that shrinks and clips, so a narrow
           window loses the end of the branch name before it can push the right
-          cluster (Review & merge, GitHub, settings) off the bar. */}
+          cluster (Review & merge, GitHub) off the bar. */}
       <div className="statusbar__left">
         {environment !== null && (
           <>
@@ -127,21 +100,6 @@ export default function StatusBar({
       {environment?.kind === "main" && (
         <span className="statusbar__readonly">{branchName(environment, git)} is read-only</span>
       )}
-
-      <div className="statusbar__settings-wrap" ref={settingsWrapRef}>
-        <button
-          type="button"
-          className="statusbar__settings"
-          aria-expanded={settingsOpen}
-          aria-label="Settings"
-          onClick={() => setSettingsOpen((open) => !open)}
-        >
-          <Sliders size={14} knobFill="var(--surface)" />
-        </button>
-        <AnimatePresence>
-          {settingsOpen && <SettingsPopover onPicked={() => setSettingsOpen(false)} />}
-        </AnimatePresence>
-      </div>
     </div>
   );
 }

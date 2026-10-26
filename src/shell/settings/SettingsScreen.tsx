@@ -22,8 +22,8 @@ import "./settings.css";
  * window unclosable for as long as settings was open.
  *
  * The status bar stays for an unrelated reason — it keeps reporting while any
- * transient surface is up, as every one of them in this shell does, and it holds
- * the glyph that opened this screen. `settings.css` spells out both.
+ * transient surface is up, as every one of them in this shell does.
+ * `settings.css` spells out both.
  *
  * Nothing below is per-setting: every row comes from the schema Rust publishes,
  * so adding a setting is a Rust-only edit. The MCP panel and the Google account
@@ -44,8 +44,8 @@ export default function SettingsScreen({
 }) {
   // `landOn` is read exactly here and nowhere else — an initialiser, so it is
   // seen once at mount and never again. That is the whole contract: it is a
-  // *request* from whatever opened the screen ("MCP servers" in the status bar's
-  // popover), not a selection. Once the sidebar has been clicked, `picked` is
+  // *request* from whatever opened the screen (an app's own settings button, such
+  // as the canvas's Drawing style), not a selection. Once the sidebar has been clicked, `picked` is
   // the answer and an unchanged prop cannot take it back. Making this controlled
   // would mean a click that the next render silently undid.
   const [picked, setPicked] = useState<string | null>(landOn);

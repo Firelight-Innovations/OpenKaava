@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 export interface SettingsSurface {
   open: boolean;
   /**
-   * Which section to land on, or `null` for "wherever it was last". A request,
+   * Which section to land on, or `null` for the screen's first. A request,
    * not a selection: the screen falls back to its own first section when this
    * names one that is not registered, so a stale shortcut opens on something.
    */
@@ -36,8 +36,9 @@ export function openSettings(section?: string): void {
 /** Dismiss it. Safe to call when it is already dismissed. */
 export function closeSettings(): void {
   if (!surface.open) return;
-  // The section is deliberately kept, so reopening from the glyph returns you to
-  // where you were — what every settings screen with a sidebar does.
+  // The request is kept, but nothing reads it while the screen is shut, and the
+  // next `openSettings` replaces it. The screen also forgets what was picked in
+  // its sidebar when it unmounts, so it reopens on its first section.
   announce({ open: false, section: surface.section });
 }
 

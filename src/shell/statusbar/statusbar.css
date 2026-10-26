@@ -1,5 +1,5 @@
 /*
- * The status bar and its settings popover.
+ * The status bar.
  *
  * Measured against the handoff's SCREEN 01/02 status-bar crops and the
  * geometry/token reference tables (docs/handoffs/shell-spec.html). This
@@ -67,8 +67,7 @@
 }
 
 .statusbar__kind--button:focus-visible,
-.statusbar__review:focus-visible,
-.statusbar__settings:focus-visible {
+.statusbar__review:focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
@@ -250,77 +249,4 @@ button.statusbar__update:hover .statusbar__update-label {
 
 .statusbar__diffstat-files {
   color: var(--text-dim);
-}
-
-/* Positioning context for the popover, and the button that opens it. */
-.statusbar__settings-wrap {
-  position: relative;
-  display: flex;
-  align-items: stretch;
-}
-
-.statusbar__settings {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-/* --- the settings popover ---------------------------------------------
-   Contents are not specified by the handoff (see SettingsPopover.tsx).
-   Surface, border, radius and shadow are lifted from the tool health
-   popover (src/shell/switcher/switcher.css) — the closest reference for a
-   floating panel in the spec. Anchored above and right-aligned, opening
-   away from the bottom edge of the window rather than off-screen. */
-
-.statusbar__popover {
-  position: absolute;
-  bottom: 100%;
-  right: 0;
-  margin-bottom: 6px;
-  width: 200px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  overflow: hidden;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
-  z-index: 20;
-}
-
-.statusbar__popover-header {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--line);
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--text-dim-2);
-  letter-spacing: 0.1em;
-}
-
-.statusbar__popover-item {
-  display: block;
-  width: 100%;
-  padding: 10px 14px;
-  border: none;
-  background: transparent;
-  font-family: var(--sans);
-  font-size: 11.5px;
-  font-weight: 400;
-  line-height: 1;
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-}
-
-.statusbar__popover-item:not(:first-of-type) {
-  border-top: 1px solid var(--surface-2);
-}
-
-.statusbar__popover-item:hover {
-  background: var(--surface-2);
 }
