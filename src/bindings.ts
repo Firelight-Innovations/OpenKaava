@@ -539,7 +539,7 @@ export function onAgentTabEvent(cb: (payload: unknown) => void): Promise<Unliste
  *  (`apps::agent_tab::CHOSEN`). Payload is `{ instanceId, harness, model }`. */
 export const AGENT_TAB_CHOSEN = "agent-tab:chosen";
 
-/** Hear every agent tab's choice of harness, for the tab and the agent bar alike. */
+/** Hear every agent tab's choice of harness. */
 export function onAgentTabChosen(cb: (payload: unknown) => void): Promise<UnlistenFn> {
   return listen<unknown>(AGENT_TAB_CHOSEN, (e) => cb(e.payload));
 }
