@@ -78,7 +78,8 @@ export default function SettingsScreen({
   // Focus comes into the screen when it opens. Ctrl+, can open it from a
   // terminal, a field or an app's frame, and focus left there would send typing
   // to the surface behind and keep Escape from ever reaching the listener above.
-  // On the way out it goes back, unless something else took it first.
+  // On the way out it goes back, unless something else took it first: a click
+  // on the status bar's git controls, say, which shut this screen.
   const dialog = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const before = document.activeElement;

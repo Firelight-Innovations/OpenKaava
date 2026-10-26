@@ -31,12 +31,96 @@
   flex: none;
 }
 
-/* The branch is the one segment allowed to give ground. */
-.statusbar__left > .statusbar__branch {
+/* The git segment is the one allowed to give ground, and inside it the branch
+   name: the arrows and the diff stat keep their width. */
+.statusbar__left > .statusbar__git {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* The bar's own 14px between branch, arrows and diff stat, as when they were
+   three separate segments. */
+.statusbar__git {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.statusbar__git > * {
+  flex: none;
+}
+
+.statusbar__git > .statusbar__branch {
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Pressable, the branch segment opens Source Control and GitHub opens GitHub.
+   One fill behind the whole segment, so it reads as one control rather than
+   three. The negative margin keeps the content where the readout draws it; the
+   fill reaches past it into the gap. The git segment keeps its right margin,
+   since the left cluster clips anything past its edge. */
+.statusbar__git--button,
+.statusbar__github--button {
+  appearance: none;
+  height: 20px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.statusbar__git--button {
+  margin-left: -6px;
+}
+
+.statusbar__github--button {
+  margin-inline: -6px;
+}
+
+/* 6px to the branch, as GitHub's dot sits to its label. */
+.statusbar__git-icon {
+  margin-right: -8px;
+  color: var(--text-dim);
+}
+
+.statusbar__git--button:hover,
+.statusbar__github--button:hover {
+  background: var(--bg-layer-1-hover);
+}
+
+/* The selected-row fill rather than the chip's: it differs from the hover fill
+   in both themes, where the chip's equals it in light. */
+.statusbar__git--button[aria-pressed="true"],
+.statusbar__github--button[aria-pressed="true"] {
+  background: var(--bg-layer-1-selected);
+}
+
+.statusbar__git--button:hover .statusbar__branch,
+.statusbar__git--button[aria-pressed="true"] .statusbar__branch,
+.statusbar__github--button:hover .statusbar__label,
+.statusbar__github--button[aria-pressed="true"] .statusbar__label {
+  color: var(--text);
+}
+
+/* On either fill the status green and red drop under 4.5:1 for 11px text (the
+   red in dark, the green in light), so the counts take the text tones there. */
+.statusbar__git--button:hover .statusbar__ahead,
+.statusbar__git--button[aria-pressed="true"] .statusbar__ahead,
+.statusbar__git--button:hover .statusbar__added,
+.statusbar__git--button[aria-pressed="true"] .statusbar__added {
+  color: var(--txt-success);
+}
+
+.statusbar__git--button:hover .statusbar__deleted,
+.statusbar__git--button[aria-pressed="true"] .statusbar__deleted {
+  color: var(--txt-danger);
 }
 
 /* The environment kind chip: "Local worktree" / "Cloud session" / "Main". A
@@ -67,9 +151,20 @@
 }
 
 .statusbar__kind--button:focus-visible,
-.statusbar__review:focus-visible {
+.statusbar__review:focus-visible,
+.statusbar__git--button:focus-visible,
+.statusbar__github--button:focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
+}
+
+/* Drawn inside the button. The left cluster clips its children, and GitHub
+   sits a few pixels off the window's bottom edge, so a ring outside either
+   would lose its edges. */
+.statusbar__kind--button:focus-visible,
+.statusbar__git--button:focus-visible,
+.statusbar__github--button:focus-visible {
+  outline-offset: -2px;
 }
 
 .statusbar__ahead-behind {
@@ -135,8 +230,9 @@
   }
 }
 
-/* GitHub status is a dot then a label. */
+/* GitHub status is a dot then a label; pressable, it opens the GitHub view. */
 .statusbar__github {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -235,16 +331,23 @@ button.statusbar__update:hover .statusbar__update-label {
   white-space: nowrap;
 }
 
-/* The diff-stat readout. Same face as the branch beside it — the additions
-   and deletions colour themselves inline (see `DiffStat` in StatusBar.tsx),
-   so this only has to set the shared face and leave the file count in the
-   bar's ordinary dim text. */
+/* The diff-stat readout. Same face as the branch beside it, the additions and
+   deletions in green and red, and the file count in the bar's ordinary dim
+   text. */
 .statusbar__diffstat {
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 400;
   line-height: 1;
   white-space: nowrap;
+}
+
+.statusbar__added {
+  color: var(--ok);
+}
+
+.statusbar__deleted {
+  color: var(--err);
 }
 
 .statusbar__diffstat-files {

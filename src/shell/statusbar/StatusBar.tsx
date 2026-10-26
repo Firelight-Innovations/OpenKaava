@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { GitBranch } from "lucide-react";
 import type { GitStatus, UpdateNotice } from "../contract";
 import type { Environment } from "../environment";
 import { ENVIRONMENT_BAR_LABEL } from "../environment";
@@ -32,7 +33,19 @@ export interface StatusBarProps {
   /** Opens the rail's Git page on Source Control. The "Review & merge" button
    *  is drawn for worktree and design environments only. */
   onReviewAndMerge?: () => void;
+  /**
+   * Opens the rail's Git page on one of its views, or shuts it with `null`. The
+   * branch segment opens Source Control and the GitHub status opens GitHub.
+   * Without it both are readouts rather than buttons.
+   */
+  onShowGit?: (view: GitView | null) => void;
+  /** The Git page's view while it is open, else `null`. That view's button
+   *  draws pressed, and pressing it again shuts the page. */
+  gitShowing?: GitView | null;
 }
+
+/** The Git page's two views, as `rail/GitPage.tsx`'s `GitPageView` names them. */
+export type GitView = "worktree" | "github";
 
 /**
  * Left cluster, then right cluster, per §1.9: project name, branch/
@@ -41,8 +54,9 @@ export interface StatusBarProps {
  * height is `.frame__statusbar`'s — this component only lays out its
  * contents and never touches that box.
  *
- * Settings is not here; it opens from Ctrl+, until the title bar has its own
- * button.
+ * The bar is where git lives: the branch segment opens Source Control and the
+ * GitHub status opens GitHub, each on the rail's Git page. Settings is not
+ * here; it opens from Ctrl+, until the title bar has its own button.
  */
 export default function StatusBar({
   project,
@@ -51,7 +65,13 @@ export default function StatusBar({
   githubOk,
   update,
   onReviewAndMerge,
+  onShowGit,
+  gitShowing = null,
 }: StatusBarProps) {
+  // A view's button opens the page on that view, or shuts the page when it is
+  // the view already showing — the rail's own Git button toggles the same way.
+  const toggle = onShowGit && ((view: GitView) => onShowGit(gitShowing === view ? null : view));
+
   return (
     <div className="statusbar">
       {/* The left cluster is one flex child that shrinks and clips, so a narrow
@@ -62,17 +82,12 @@ export default function StatusBar({
           <>
             {project !== null && <span className="statusbar__project">{project}</span>}
             <EnvironmentChip environment={environment} />
-            <span className="statusbar__branch">{branchName(environment, git)}</span>
-            {environment.kind !== "main" && git !== null && (
-              <span
-                className="statusbar__ahead-behind"
-                title={`${git.ahead} ahead, ${git.behind} behind`}
-              >
-                <span className="statusbar__ahead">↑{git.ahead}</span>{" "}
-                <span className="statusbar__behind">↓{git.behind}</span>
-              </span>
-            )}
-            {git !== null && filesTouched(git) > 0 && <DiffStat status={git} />}
+            <BranchSegment
+              environment={environment}
+              git={git}
+              pressed={gitShowing === "worktree"}
+              onClick={toggle && (() => toggle("worktree"))}
+            />
           </>
         )}
       </div>
@@ -86,21 +101,122 @@ export default function StatusBar({
           <ReviewMergeButton onClick={onReviewAndMerge} />
         )}
 
-      <div className="statusbar__github">
-        {/* The handoff only draws GitHub healthy (--ok). --err is this
-            component's own extrapolation for `githubOk === false` — the
-            spec has no failure-state crop for this dot to check against. */}
-        <span
-          className="statusbar__dot"
-          style={{ background: githubOk ? "var(--ok)" : "var(--err)" }}
-        />
-        <span className="statusbar__label">GitHub</span>
-      </div>
+      <GitHubStatus
+        ok={githubOk}
+        pressed={gitShowing === "github"}
+        onClick={toggle && (() => toggle("github"))}
+      />
 
       {environment?.kind === "main" && (
         <span className="statusbar__readonly">{branchName(environment, git)} is read-only</span>
       )}
     </div>
+  );
+}
+
+/**
+ * The branch, its ahead/behind arrows and the diff stat: one button that opens
+ * Source Control, or the same three as plain readouts with nowhere to open.
+ *
+ * The environment chip stays outside it. That chip is its own button (it
+ * copies the path), and a button inside a button is invalid HTML.
+ */
+function BranchSegment({
+  environment,
+  git,
+  pressed,
+  onClick,
+}: {
+  environment: Environment;
+  git: GitStatus | null;
+  pressed: boolean;
+  onClick: (() => void) | undefined;
+}) {
+  const branch = branchName(environment, git);
+  const arrows = environment.kind !== "main" && git !== null;
+  const files = git === null ? 0 : filesTouched(git);
+  const body = (
+    <>
+      <span className="statusbar__branch">{branch}</span>
+      {arrows && (
+        <span
+          className="statusbar__ahead-behind"
+          title={`${git.ahead} ahead, ${git.behind} behind`}
+        >
+          <span className="statusbar__ahead">↑{git.ahead}</span>{" "}
+          <span className="statusbar__behind">↓{git.behind}</span>
+        </span>
+      )}
+      {git !== null && files > 0 && <DiffStat status={git} />}
+    </>
+  );
+
+  if (onClick === undefined) return <span className="statusbar__git">{body}</span>;
+
+  // The label says in words what the arrows and the diff stat draw, since a
+  // label replaces the button's content for assistive technology.
+  const label = [`Source control: ${branch}`];
+  if (git !== null && arrows) label.push(`${git.ahead} ahead`, `${git.behind} behind`);
+  if (git !== null && files > 0) {
+    label.push(
+      `${files} ${files === 1 ? "file" : "files"} changed`,
+      `${git.insertions} ${git.insertions === 1 ? "insertion" : "insertions"}`,
+      `${git.deletions} ${git.deletions === 1 ? "deletion" : "deletions"}`,
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="statusbar__git statusbar__git--button"
+      title={`Source control: ${branch}`}
+      aria-label={label.join(", ")}
+      aria-pressed={pressed}
+      onClick={onClick}
+    >
+      <GitBranch size={12} strokeWidth={1.5} aria-hidden className="statusbar__git-icon" />
+      {body}
+    </button>
+  );
+}
+
+/**
+ * The GitHub dot and label: a button that opens the Git page's GitHub view, or
+ * a readout with nowhere to open.
+ *
+ * The handoff only draws GitHub healthy (--ok). --err is this component's own
+ * extrapolation for `ok === false` — the spec has no failure-state crop for
+ * this dot to check against. The button is named "GitHub" either way:
+ * `WindowRoot` passes `ok` from the stack scan, not from a GitHub sign-in, so a
+ * label that said "not connected" would claim something nobody checked.
+ */
+function GitHubStatus({
+  ok,
+  pressed,
+  onClick,
+}: {
+  ok: boolean;
+  pressed: boolean;
+  onClick: (() => void) | undefined;
+}) {
+  const body = (
+    <>
+      <span className="statusbar__dot" style={{ background: ok ? "var(--ok)" : "var(--err)" }} />
+      <span className="statusbar__label">GitHub</span>
+    </>
+  );
+
+  if (onClick === undefined) return <span className="statusbar__github">{body}</span>;
+
+  return (
+    <button
+      type="button"
+      className="statusbar__github statusbar__github--button"
+      aria-pressed={pressed}
+      onClick={onClick}
+    >
+      {body}
+    </button>
   );
 }
 
@@ -227,9 +343,9 @@ function filesTouched(status: GitStatus): number {
  * `+142 -63 · 9 files` — additions and deletions in the same green/red the
  * spec's token table already assigns an added/deleted file (`--ok`/`--err`
  * in tokens.css), the file count left in the bar's ordinary dim text rather
- * than a third colour. Coloured inline, the same way the GitHub
- * dots above set their own `background` — this is the one other place in the
- * bar a value picks its own colour instead of taking the row's.
+ * than a third colour. Classes rather than inline colours, so the branch
+ * button's hover and pressed fills can swap in the text tones that stay
+ * readable on them (statusbar.css).
  *
  * Only ever mounted by the caller once `filesTouched(status) > 0` — a status
  * bar is not the place to spend width saying "no changes".
@@ -238,8 +354,8 @@ function DiffStat({ status }: { status: GitStatus }) {
   const files = filesTouched(status);
   return (
     <span className="statusbar__diffstat">
-      <span style={{ color: "var(--ok)" }}>+{status.insertions}</span>{" "}
-      <span style={{ color: "var(--err)" }}>-{status.deletions}</span>
+      <span className="statusbar__added">+{status.insertions}</span>{" "}
+      <span className="statusbar__deleted">-{status.deletions}</span>
       <span className="statusbar__diffstat-files">
         {" "}
         · {files} {files === 1 ? "file" : "files"}

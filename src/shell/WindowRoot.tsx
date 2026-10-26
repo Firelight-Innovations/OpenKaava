@@ -101,7 +101,11 @@ import { gitControl, worktreeControl } from "./state/git";
 import { githubAuthControl, githubControl } from "./state/github";
 import { copyToClipboard, reviewControl } from "./state/review";
 import { isFullscreen, isTauri, nextZoom, setFullscreen, setZoom } from "./hostWindow";
-import { openSettingsOnTop } from "./coveringScreens";
+import { useSettingsSurface } from "./settingsSurface";
+import { gitViewShowing, showGitView } from "./gitPageDoor";
+import { useLibrarySurface } from "./librarySurface";
+import { useShortcutsSurface } from "./shortcutsSurface";
+import { closeCoveringScreens, openSettingsOnTop } from "./coveringScreens";
 import Rail from "./rail/Rail";
 import PageShell from "./rail/PageShell";
 import AppPage from "./rail/AppPage";
@@ -1721,15 +1725,29 @@ export default function WindowRoot({
     );
   }, [cancelSwitchProject, activeClusterId]);
 
-  // The environment bar's "Review & merge" opens the same Git page the rail
-  // does, through the same door — `onSelectPage`, not a second path onto
-  // `right_page`. Guarded, because that door toggles: a second click with Git
-  // already open would otherwise close the page it asked to see. It lands on
-  // the Source Control tab, which is where a review happens.
-  const onReviewAndMerge = useCallback(() => {
-    if (rightPage?.id !== "git") onSelectPage("git");
-    setGitView("worktree");
-  }, [onSelectPage, rightPage?.id]);
+  // The status bar's git controls open the same Git page the rail does,
+  // through the same door — `onSelectPage`, not a second path onto
+  // `right_page`. `showGitView` says when to go through it, since it toggles,
+  // and why a screen covering the page comes down first.
+  const settingsOpen = useSettingsSurface().open;
+  const libraryOpen = useLibrarySurface().open;
+  const shortcutsOpen = useShortcutsSurface().open;
+  const pageCovered = settingsOpen || libraryOpen || shortcutsOpen;
+  const onShowGit = useCallback(
+    (view: GitPageView | null) => {
+      showGitView(view, rightPage?.id === "git", {
+        uncover: closeCoveringScreens,
+        open: () => onSelectPage("git"),
+        close: onClosePage,
+        setView: setGitView,
+      });
+    },
+    [onSelectPage, onClosePage, rightPage?.id],
+  );
+
+  // "Review & merge" lands on the Source Control tab, which is where a review
+  // happens, and never shuts the page.
+  const onReviewAndMerge = useCallback(() => onShowGit("worktree"), [onShowGit]);
 
   // The drag layer is the only thing in the shell that spans regions, so it is
   // the only thing that has to be handed down rather than owned locally. The
@@ -2366,6 +2384,8 @@ export default function WindowRoot({
               git={git.status}
               githubOk={!error}
               onReviewAndMerge={onReviewAndMerge}
+              onShowGit={onShowGit}
+              gitShowing={gitViewShowing(rightPage?.id, pageCovered, gitView)}
               update={updateNotice(updates.state, updates.asked, updates.install)}
             />
           ),
