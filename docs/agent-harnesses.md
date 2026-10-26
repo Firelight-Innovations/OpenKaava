@@ -97,8 +97,9 @@ that are not registered yet, as "Coming soon", by the fallback names in `harness
 
 - **The picker.** The tab's settings menu has a group per harness, listing its models, or only
   its default until its agent has said (see [Models](#models)). Choosing a model chooses that
-  harness and that model. While the tab's agent runs, it cannot switch harness. A model chosen
-  then applies to the tab's next session.
+  harness and that model. While the tab's agent runs, the menu cannot switch harness. A model
+  chosen under the running harness changes that agent's model at once, through
+  `agent-tab/set-config`. A choice under any other harness is ignored.
 - **The model.** While an agent runs, the tab's header shows its harness and its model.
 - **Hints.** Each `Hint` is a sentence template in the tab's `apps/agent-tab/ui/src/strings.ts`.
   A template fills in the harness's name and its setup commands from `HarnessInfo`, so a new
@@ -111,7 +112,9 @@ that are not registered yet, as "Coming soon", by the fallback names in `harness
 ACP has no request that lists an agent's models outside a session. So the host asks for them:
 
 1. A tab calls `agent-tab/harnesses`, with developer mode on and a worktree to run in. The tab
-   does this when it opens.
+   does this when it opens. The shell makes the same call as the cluster's agent tab
+   (`useAgentTabRefresh`, in `src/shell/state/agentTab.ts`). It calls when the tab mounts, when a
+   setting or the cluster's environment changes, and when the tab's session starts or resets.
 2. For each installed harness that it has not asked in that worktree this launch, the host starts
    the harness's adapter there. It sends `initialize` and `session/new`, and nothing else.
 3. It reads the option of category `model` from the reply to `session/new`, and kills the agent.
@@ -234,6 +237,6 @@ request carries what it grants under `permissions` or `additionalPermissions`, a
    these reads, add those keys, with a test.
 5. **Regenerate the TypeScript types.** Run
    `KAAVA_BLESS=1 cargo test -p kaava-agent-host generated_types`. The new id joins the `Harness`
-   union. The pickers list the new harness, and no UI code changes.
+   union. The tab's settings menu lists the new harness, and no UI code changes.
 6. **Record the version.** Add a row to `docs/agent-host-versions.md`.
 7. **Run `pnpm verify`.**

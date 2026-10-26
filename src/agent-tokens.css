@@ -9,9 +9,8 @@
  * `src/tokens.css`. It sits beside that file, as `src/kaava-ui.css` does, so a
  * shell surface can load it again without importing an app's source.
  *
- * A few tokens (`--k-accent`, `--k-accent-subtle`, `--k-on-accent`, `--k-border-strong`,
- * `--k-space-4`, `--k-motion-fast`, `--k-shadow-card`, `--k-text-small`, `--k-control-md`) are
- * not read by a component yet. They are the rest of the palette, kept for the components that
+ * A few tokens (`--k-accent-subtle`, `--k-shadow-card`, `--k-text-small`, `--k-control-md`,
+ * `--k-sidebar-bg`) are not read by a component yet. They are the rest of the palette, kept for the components that
  * are still being built.
  *
  * The colour names are the VS Code-style ones from handoff §2.1.1
