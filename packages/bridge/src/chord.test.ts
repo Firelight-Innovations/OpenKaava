@@ -24,6 +24,14 @@ describe("shouldForwardChord", () => {
     expect(shouldForwardChord(ev({ key: "0", altKey: true }))).toBe(false);
   });
 
+  it("forwards Ctrl+, for Settings, but not with Alt or alone", () => {
+    expect(shouldForwardChord(ev({ key: ",", ctrlKey: true }))).toBe(true);
+    expect(shouldForwardChord(ev({ key: ",", metaKey: true }))).toBe(true);
+    expect(shouldForwardChord(ev({ key: ",", ctrlKey: true, altKey: true }))).toBe(false);
+    expect(shouldForwardChord(ev({ key: "," }))).toBe(false);
+    expect(shouldForwardChord(ev({ key: ",", ctrlKey: true, defaultPrevented: true }))).toBe(false);
+  });
+
   it("leaves editing chords to the app", () => {
     for (const key of ["c", "v", "x", "z", "a", "b", "k", "s"]) {
       expect(shouldForwardChord(ev({ key, ctrlKey: true }))).toBe(false);

@@ -67,6 +67,12 @@
   color: var(--txt-primary);
 }
 
+/* Focused only to hold the keyboard while the screen is up (SettingsScreen.tsx).
+   It is not a control, so a ring around the whole band would point at nothing. */
+.settings:focus {
+  outline: none;
+}
+
 /* The shared switch eases its knob; on this screen it does not, per the file
    header. */
 .settings .k-toggle__knob {

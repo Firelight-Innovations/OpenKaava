@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import SettingRow from "./SettingRow";
 import McpPanel from "./McpPanel";
@@ -75,6 +75,24 @@ export default function SettingsScreen({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  // Focus comes into the screen when it opens. Ctrl+, can open it from a
+  // terminal, a field or an app's frame, and focus left there would send typing
+  // to the surface behind and keep Escape from ever reaching the listener above.
+  // On the way out it goes back, unless something else took it first.
+  const dialog = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const before = document.activeElement;
+    const node = dialog.current;
+    node?.focus({ preventScroll: true });
+    return () => {
+      const now = document.activeElement;
+      const ours = now === null || now === document.body || node?.contains(now) === true;
+      if (ours && before instanceof HTMLElement && before.isConnected) {
+        before.focus({ preventScroll: true });
+      }
+    };
+  }, []);
+
   const needle = filter.trim().toLowerCase();
   const filtering = needle !== "";
 
@@ -117,11 +135,13 @@ export default function SettingsScreen({
       }}
     >
       <motion.div
+        ref={dialog}
         className="settings"
         variants={settingsScreen}
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
+        tabIndex={-1}
       >
         <header className="settings__header">
           <h1 className="settings__heading">Settings</h1>

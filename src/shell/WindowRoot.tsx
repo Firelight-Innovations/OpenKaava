@@ -101,6 +101,7 @@ import { gitControl, worktreeControl } from "./state/git";
 import { githubAuthControl, githubControl } from "./state/github";
 import { copyToClipboard, reviewControl } from "./state/review";
 import { isFullscreen, isTauri, nextZoom, setFullscreen, setZoom } from "./hostWindow";
+import { openSettingsOnTop } from "./coveringScreens";
 import Rail from "./rail/Rail";
 import PageShell from "./rail/PageShell";
 import AppPage from "./rail/AppPage";
@@ -1855,6 +1856,7 @@ export default function WindowRoot({
     toggleFullscreen: onToggleFullscreen,
     zoomIn: () => onZoom(1),
     zoomOut: () => onZoom(-1),
+    openSettings: () => openSettingsOnTop(),
 
     newTerminal: () => void onNewTerminal(),
     splitTerminal: () => {
