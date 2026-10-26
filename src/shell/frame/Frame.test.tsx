@@ -6,7 +6,7 @@
  * and an empty bordered column whenever no page was open. These pin both.
  */
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import type { FrameSlots } from "../contract";
 import Frame from "./Frame";
 
@@ -143,5 +143,46 @@ describe("Frame's terminal band", () => {
 
     // 600 (column) - 6 (handle) - 120 (tool window minimum) = 474.
     expect(heights).toEqual([474]);
+  });
+
+  it("re-fits a maximized band to the column when the column changes size", async () => {
+    // Each observer the frame makes, with what it watches and what it runs.
+    const observers: { seen: Element[]; resized: () => void }[] = [];
+    const real = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      readonly seen: Element[] = [];
+      constructor(callback: ResizeObserverCallback) {
+        observers.push({ seen: this.seen, resized: () => callback([], this) });
+      }
+      observe(el: Element) {
+        this.seen.push(el);
+      }
+      unobserve() {}
+      disconnect() {}
+    };
+    try {
+      const { container } = render(
+        <Frame
+          kind="main"
+          slots={slots({ bottomPanel: <div>band</div> })}
+          bottomCollapsed={false}
+          bottomMaximized
+        />,
+      );
+      const main = container.querySelector(".frame__main") as HTMLElement;
+      const column = observers.filter((o) => o.seen.includes(main)).pop();
+      expect(column?.seen).toEqual([main]);
+
+      main.getBoundingClientRect = () => ({ height: 700 }) as DOMRect;
+      const handle = container.querySelector('[data-region="bottomhandle"]') as HTMLElement;
+      handle.getBoundingClientRect = () => ({ height: 6 }) as DOMRect;
+      act(() => column?.resized());
+
+      // 700 (column) - 6 (handle) = 694: the whole column, with no tool window left.
+      const band = container.querySelector('[data-region="bottom"]') as HTMLElement;
+      await waitFor(() => expect(band.style.height).toBe("694px"));
+    } finally {
+      globalThis.ResizeObserver = real;
+    }
   });
 });

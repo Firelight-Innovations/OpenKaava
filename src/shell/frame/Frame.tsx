@@ -10,7 +10,7 @@ import "./frame.css";
 /**
  * The window's geometry, and nothing else.
  *
- * Five bands stacked in a column, only the middle one growing. The frame knows
+ * Three bands stacked in a column, only the middle one growing. The frame knows
  * how tall each bar is and how the middle row splits; it knows nothing about
  * what any of them contain. Regions arrive as slots, already built, and cannot
  * affect each other's size — which is the property that lets them be built in
