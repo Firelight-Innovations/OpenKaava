@@ -6,7 +6,7 @@
  */
 import "../jsdom-shims";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { isValidElement, type ComponentType, type ReactNode } from "react";
 
 const bridge = vi.hoisted(() => ({ invoke: vi.fn() }));
@@ -320,14 +320,16 @@ describe("the slot registry", () => {
     expect(row("inProgress").querySelector(".at-tool__status")?.textContent).toBe("Running");
   });
 
-  it("names the harness and model it is given, and leaves out the unknown ones", () => {
+  it("offers New session only once there is a session, and still announces the state", () => {
     const { Header } = defaultSlots;
-    const header = (harness: string | null, model: string | null) =>
-      render(
-        <Header cwd={null} harness={harness} model={model} state={null} onNewSession={vi.fn()} />,
-      ).container.querySelectorAll(".at-chip");
-    expect([...header("Codex", "gpt-5")].map((el) => el.textContent)).toEqual(["Codex", "gpt-5"]);
+    const onNewSession = vi.fn();
+    render(<Header state={null} onNewSession={onNewSession} />);
+    expect(screen.queryByRole("button", { name: "New session" })).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("No session");
     cleanup();
-    expect(header(null, null)).toHaveLength(0);
+    render(<Header state="working" onNewSession={onNewSession} />);
+    expect(screen.getByRole("status").textContent).toBe("Working");
+    fireEvent.click(screen.getByRole("button", { name: "New session" }));
+    expect(onNewSession).toHaveBeenCalledOnce();
   });
 });

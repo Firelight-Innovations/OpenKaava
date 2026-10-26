@@ -17,12 +17,7 @@ export interface LayoutProps {
 }
 
 export interface HeaderProps {
-  /** The worktree the session runs in, or `null` before there is a session. */
-  cwd: string | null;
-  /** The harness's display name ("Claude"), or `null` until the harness picker supplies one. */
-  harness: string | null;
-  /** The running model's name, or `null` when it is not known. */
-  model: string | null;
+  /** The session's state, or `null` before there is a session. */
   state: SessionState | null;
   onNewSession: () => void;
 }
@@ -58,7 +53,6 @@ export interface EmptyStateProps {
   blocked: string | null;
   /** What the harness still needs, already in words, or `null`. */
   setupHint: string | null;
-  onExample: (text: string) => void;
 }
 
 export interface UserMessageProps {
@@ -254,11 +248,11 @@ export interface ComposerProps {
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   /** Notices to show above the input. */
   notices: ReactNode;
-  /** The footer's left side: the settings button. */
+  /** Under the box, at the left: the settings button. */
   controls: ReactNode;
-  /** Beside Send or Stop: the context meter and the usage ring. */
+  /** Under the box, at the right: the context meter and the usage ring. */
   meters: ReactNode;
-  /** The footer's right side: Send or Stop. */
+  /** Inside the box, at the end of the input: Send or Stop. */
   action: ReactNode;
 }
 

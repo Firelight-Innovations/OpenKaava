@@ -55,7 +55,7 @@ import { toTurns, type Turn } from "./thread";
 import { Turns, TurnsProvider } from "./Turns";
 import { useSlots } from "./components/registry";
 import type { PickerProps } from "./components/types";
-import { hintText, infoOf, modelName } from "./harness";
+import { hintText, infoOf } from "./harness";
 import { strings, type HarnessWords } from "./strings";
 
 type Action =
@@ -305,10 +305,6 @@ export default function App() {
         <S.Layout
           header={
             <S.Header
-              cwd={status?.cwd ?? null}
-              harness={current?.name ?? null}
-              // An ended session's model is not what the next prompt runs.
-              model={running ? modelName(status) : null}
               state={status?.state ?? null}
               onNewSession={() => {
                 setNotice(null);
@@ -322,10 +318,6 @@ export default function App() {
                 <S.EmptyState
                   blocked={blocked}
                   setupHint={current?.hint ? hintText(current.hint, current) : null}
-                  onExample={(text) => {
-                    setDraft(text);
-                    prompt.current?.focus();
-                  }}
                 />
               ) : (
                 <Turns />

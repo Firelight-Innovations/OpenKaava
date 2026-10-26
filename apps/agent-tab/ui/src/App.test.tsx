@@ -184,6 +184,12 @@ async function shown() {
   return label.split(", ").slice(1);
 }
 
+/** The same, at once, for use inside `waitFor`: nothing before the button is drawn. */
+function named() {
+  const button = screen.queryByRole("button", { name: /^Agent settings/ });
+  return (button?.getAttribute("aria-label") ?? "").split(", ").slice(1);
+}
+
 /** The mode the settings button shows, by name. */
 async function shownMode() {
   const label = (await settingsButton()).getAttribute("aria-label") ?? "";
@@ -256,7 +262,7 @@ describe("the agent tab", () => {
   it("sends on Enter to the tab's harness and clears the prompt", async () => {
     backend({ status: null, seq: 0, items: [] });
     render(<App />);
-    await screen.findByText("Start a session");
+    await screen.findByText("No session");
     fireEvent.change(prompt(), { target: { value: "fix the test" } });
     await act(async () => {
       fireEvent.keyDown(prompt(), { key: "Enter" });
@@ -277,7 +283,7 @@ describe("the agent tab", () => {
       },
     );
     render(<App />);
-    await screen.findByText("Start a session");
+    await screen.findByText("No session");
     fireEvent.change(prompt(), { target: { value: "go" } });
     await act(async () => {
       fireEvent.keyDown(prompt(), { key: "Enter" });
@@ -327,7 +333,7 @@ describe("the agent tab", () => {
       },
     );
     render(<App />);
-    await screen.findByText("Start a session");
+    await screen.findByText("No session");
     fireEvent.change(prompt(), { target: { value: "go" } });
     await act(async () => {
       fireEvent.keyDown(prompt(), { key: "Enter" });
@@ -484,7 +490,7 @@ describe("the agent tab", () => {
     render(<App />);
     await screen.findByText("fix the build");
     expect(screen.getByText(/Your message is sent once it is ready/)).toBeTruthy();
-    expect(screen.queryByText("Start a session")).toBeNull();
+    expect(document.querySelector(".at-empty")).toBeNull();
     expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Stop" }));
     expect(bridge.invoke).toHaveBeenCalledWith("agent-tab/cancel");
@@ -1037,22 +1043,26 @@ describe("the harness", () => {
     choices: [{ value: "opus", name: "Opus", description: null }],
   };
 
-  function chips(container: HTMLElement) {
-    return [...container.querySelectorAll(".at-header .at-chip")].map((c) => c.textContent);
-  }
-
-  it("names the running harness and its model in the header", async () => {
+  it("names the running harness and its model on the settings button", async () => {
     backend({ status: { ...STATUS, config: [MODEL] }, seq: 1, items: [] });
-    const { container } = render(<App />);
-    await screen.findByText("Opus");
-    expect(chips(container)).toEqual(expect.arrayContaining(["Claude", "Opus"]));
+    render(<App />);
+    await waitFor(async () => expect(await shown()).toEqual(expect.arrayContaining(["Opus"])));
+    expect(await shown()).toContain("Claude");
   });
 
   it("drops an ended session's model, which the next prompt does not run", async () => {
     backend({ status: { ...STATUS, state: "stopped", config: [MODEL] }, seq: 1, items: [] });
+    render(<App />);
+    await waitFor(async () => expect(await shown()).toContain("Claude"));
+    expect(await shown()).not.toContain("Opus");
+  });
+
+  it("has no header bar to name it in: the pane's tab and this button do", async () => {
+    backend({ status: { ...STATUS, config: [MODEL] }, seq: 1, items: [] });
     const { container } = render(<App />);
-    await waitFor(() => expect(chips(container)).toContain("Claude"));
-    expect(chips(container)).not.toContain("Opus");
+    await waitFor(async () => expect(await shown()).toContain("Opus"));
+    expect(container.querySelector(".at-header")?.textContent).not.toContain("Opus");
+    expect(screen.getByRole("button", { name: "New session" })).toBeTruthy();
   });
 
   /** A second harness, fictional: the registry lists only Claude so far. */
@@ -1138,11 +1148,11 @@ describe("the harness", () => {
           Promise.resolve({ harnesses: [CLAUDE, CODEX], current: "codex", blocked: null }),
       },
     );
-    const { container } = render(<App />);
-    await waitFor(() => expect(chips(container)).toContain("Codex"));
+    render(<App />);
+    await waitFor(() => expect(named()).toContain("Codex"));
     act(() => bridge.listeners.get("agent-tab:chosen")?.({ instanceId: "i", harness: "claude" }));
-    expect(chips(container)).toContain("Claude");
-    expect(chips(container)).not.toContain("Codex");
+    expect(named()).toContain("Claude");
+    expect(named()).not.toContain("Codex");
   });
 
   it("says a switch failed, not a send, when choosing fails", async () => {
@@ -1174,13 +1184,13 @@ describe("the harness", () => {
           }),
       },
     );
-    const { container } = render(<App />);
+    render(<App />);
     await waitFor(() => expect(reply).toBeDefined());
     act(() => bridge.listeners.get("agent-tab:chosen")?.({ instanceId: "i", harness: "pi" }));
     // Asked before the choice, so its `current` is older than it.
     await act(async () => reply?.({ harnesses: [CLAUDE, PI], current: "claude", blocked: null }));
-    expect(chips(container)).toContain("Pi");
-    expect(chips(container)).not.toContain("Claude");
+    expect(named()).toContain("Pi");
+    expect(named()).not.toContain("Claude");
   });
 
   it("offers to list the harnesses again when the list fails", async () => {
@@ -1194,13 +1204,13 @@ describe("the harness", () => {
             : Promise.resolve({ harnesses: [CLAUDE], current: "claude", blocked: null }),
       },
     );
-    const { container } = render(<App />);
+    render(<App />);
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Could not list the harnesses.");
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     });
-    await waitFor(() => expect(chips(container)).toContain("Claude"));
+    await waitFor(() => expect(named()).toContain("Claude"));
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -1213,8 +1223,8 @@ describe("the harness", () => {
           Promise.resolve({ harnesses: [CLAUDE, pi], current: "pi", blocked: null }),
       },
     );
-    const { container } = render(<App />);
-    await waitFor(() => expect(chips(container)).toContain("Pi"));
+    render(<App />);
+    await waitFor(() => expect(named()).toContain("Pi"));
     await screen.findByText(/Claude is not signed in\. Run `claude` once/);
     expect(document.body.textContent).not.toContain("pi login");
   });

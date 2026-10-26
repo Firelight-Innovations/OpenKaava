@@ -34,7 +34,6 @@ function percent(share: number): string {
 }
 
 export const strings = {
-  title: "Agent",
   state: {
     starting: "Starting",
     ready: "Ready",
@@ -81,25 +80,8 @@ export const strings = {
     meter: (share: number) => `Usage: ${percent(share)} of the tightest limit used`,
   },
   promptLabel: "Message the agent",
-  promptPlaceholder: "Ask the agent to do something in this worktree",
+  promptPlaceholder: "Describe a task or ask a question",
   promptBusy: "The agent is working. Press Esc to stop it.",
-  environment: (cwd: string) => `Worktree: ${cwd}`,
-  empty: {
-    heading: "Start a session",
-    body: "The agent works in this cluster's worktree. Approvals and edits show up here.",
-    examples: [
-      "Explain how this project is laid out",
-      "Find the failing test and fix it",
-      "Add a README section on building from source",
-    ],
-    keysHeading: "Keys",
-    keys: [
-      ["Enter", "Send"],
-      ["Shift+Enter", "New line"],
-      ["Esc", "Stop the current turn"],
-      ["Shift+Tab", "Switch mode, once the session starts"],
-    ] as const,
-  },
   modeSettings: {
     modeHint: "What the agent may do without asking you first (Shift+Tab switches)",
     later: "The mode and model appear once the session starts.",

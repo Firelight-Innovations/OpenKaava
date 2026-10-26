@@ -3,8 +3,9 @@ import type { ComposerProps } from "./types";
 import "./composer.css";
 
 /**
- * The prompt box: notices, then one rounded card holding the input and, under
- * it, a footer of the settings button, the meters, and Send or Stop.
+ * The prompt box: notices, then one rounded card holding the input with Send
+ * or Stop at its end, then a quiet row under the card with the settings button
+ * at the left and the meters at the right.
  */
 export function Composer({
   ref,
@@ -27,16 +28,16 @@ export function Composer({
           aria-label={strings.promptLabel}
           placeholder={placeholder}
           value={value}
-          rows={2}
+          rows={1}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
         />
-        <div className="at-prompt__footer">
-          {controls}
-          <span className="at-prompt__spacer" />
-          {meters}
-          {action}
-        </div>
+        {action}
+      </div>
+      <div className="at-prompt__footer">
+        {controls}
+        <span className="at-prompt__spacer" />
+        {meters}
       </div>
     </footer>
   );
