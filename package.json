@@ -8,9 +8,10 @@
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "scripts": {
-    "dev": "vite",
-    "dev:agent": "vite --mode agent",
+    "dev": "pnpm run build:packages && vite",
+    "dev:agent": "pnpm run build:packages && vite --mode agent",
     "build": "pnpm run build:bridge && pnpm run generate:icons && pnpm run generate:branding && pnpm run build:file-icons && pnpm run build:monaco-languages && pnpm run build:scene-view && tsc && vite build",
+    "build:packages": "pnpm run build:bridge && pnpm run build:file-icons && pnpm run build:monaco-languages && pnpm run build:scene-view",
     "build:bridge": "pnpm --filter @veistra/bridge build",
     "build:scene-view": "pnpm --filter @veistra/scene-view build",
     "build:file-icons": "pnpm --filter @veistra/file-icons build",
