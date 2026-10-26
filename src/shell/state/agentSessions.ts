@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { appCall, onAgentTabEvent, type Cluster } from "../../bindings";
 import { paneTabs } from "../contract";
-import { AGENT_TAB_APP } from "./agentBar";
+import { AGENT_TAB_APP } from "./agentTab";
 
 /** Mirrors the tab's `SessionState`, plus `"none"` for a tab that never sent a prompt. */
 export type AgentSessionState =

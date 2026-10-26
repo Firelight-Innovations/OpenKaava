@@ -1,8 +1,8 @@
 /*
- * The agent surfaces' design tokens: the agent tab (apps/agent-tab) and the
- * agent bar (src/shell/agentbar). Their components read only the `--k-*` names
- * below, and this file is the one place that says which Kaava token each one
- * is. Restyle the agent UI here, not in a component.
+ * The agent surface's design tokens: the agent tab (apps/agent-tab). Its
+ * components read only the `--k-*` names below, and this file is the one place
+ * that says which Kaava token each one is. Restyle the agent UI here, not in a
+ * component.
  *
  * Every value is a Kaava token or a size, never a hex, so the shell's live
  * theme and accent carry straight through: light and dark come from
@@ -113,7 +113,6 @@
   --k-radius-card: var(--radius-sm);
   --k-radius-input: var(--radius-sm);
   --k-radius-control: var(--radius-md);
-  --k-radius-bar: var(--radius-region);
   --k-radius-pill: 999px;
   --k-radius-turn: 12px;
   --k-radius-composer: 14px;
