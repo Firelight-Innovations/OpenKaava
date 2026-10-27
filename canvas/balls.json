@@ -1,0 +1,17 @@
+{
+  "appState": {
+    "gridSize": 20,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "elements": [],
+  "files": {},
+  "kaava": {
+    "id": "balls",
+    "schema": 1,
+    "title": "balls",
+    "updated": "2026-09-30T16:58:01Z",
+    "updated_by": "human"
+  },
+  "type": "excalidraw",
+  "version": 2
+}

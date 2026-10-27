@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kaava splash concept: Panes</title>
+    <style>
+      /* Tokens copied from src/tokens.css (dark and light, five accents). */
+      :root {
+        --bg-canvas: #0f0f10;
+        --bg-surface-1: #141415;
+        --bg-layer-1: #181a1b;
+        --bg-layer-2: #1d1f20;
+        --border-subtle: #222425;
+        --border-subtle-1: #2c2e30;
+        --border-strong: #36393a;
+        --txt-primary: #e4e6e6;
+        --txt-secondary: #cacdce;
+        --txt-tertiary: #afb3b6;
+        --txt-disabled: #7a8185;
+        --danger: #e5534b;
+        --accent-amber: #d98a3f;
+        --accent-blue: #4d9be6;
+        --accent-green: #4cb863;
+        --accent-violet: #a585f0;
+        --accent-coral: #e5736b;
+        --accent: var(--txt-primary);
+        --sans: Inter, system-ui, "Segoe UI", sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+        color-scheme: dark;
+      }
+      :root[data-theme="light"] {
+        --bg-canvas: #f2f2f3;
+        --bg-surface-1: #ffffff;
+        --bg-layer-1: #f9f9f9;
+        --bg-layer-2: #ffffff;
+        --border-subtle: #eaebec;
+        --border-subtle-1: #e1e2e3;
+        --border-strong: #d5d7d9;
+        --txt-primary: #0f0f10;
+        --txt-secondary: #313435;
+        --txt-tertiary: #494d50;
+        --txt-disabled: #767c7f;
+        --danger: #bf2c22;
+        --accent-amber: #a85a14;
+        --accent-blue: #1f63b5;
+        --accent-green: #23803b;
+        --accent-violet: #6c47c9;
+        --accent-coral: #b8392f;
+        color-scheme: light;
+      }
+      :root[data-accent="amber"] { --accent: var(--accent-amber); }
+      :root[data-accent="blue"] { --accent: var(--accent-blue); }
+      :root[data-accent="green"] { --accent: var(--accent-green); }
+      :root[data-accent="violet"] { --accent: var(--accent-violet); }
+      :root[data-accent="coral"] { --accent: var(--accent-coral); }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background: var(--bg-canvas);
+        color: var(--txt-secondary);
+        font: 13px var(--sans);
+      }
+      h1 { margin: 0; font-size: 13px; font-weight: 600; color: var(--txt-primary); }
+      .note { max-width: 560px; margin: 0; text-align: center; font-size: 12px; color: var(--txt-tertiary); line-height: 1.45; }
+      .stage {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 560px;
+        height: 360px;
+        overflow: hidden;
+        background: var(--bg-surface-1);
+        border: 1px solid var(--border-subtle-1);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      }
+      .field { position: relative; flex: 1; min-height: 0; background: var(--bg-surface-1); }
+      canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+      .wordmark {
+        position: absolute; left: 20px; bottom: 16px; margin: 0;
+        font: 600 20px var(--sans); letter-spacing: 0.16em; text-transform: uppercase;
+        color: var(--txt-primary);
+      }
+      .bar { position: relative; flex: none; height: 40px; background: var(--bg-surface-1); border-top: 1px solid var(--border-subtle); }
+      .track { position: absolute; top: -1px; left: 0; right: 0; height: 2px; background: var(--border-subtle); }
+      .fill { height: 100%; width: 0; background: var(--accent); }
+      .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 100%; padding: 0 16px; }
+      .label { font-size: 12px; font-weight: 500; color: var(--txt-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .step { font: 500 11px var(--mono); color: var(--txt-tertiary); }
+      .failed .fill { background: var(--danger); }
+      .controls { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 560px; }
+      button {
+        height: 26px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 6px;
+        background: var(--bg-layer-1); color: var(--txt-secondary); font: 500 12px var(--sans); cursor: pointer;
+      }
+      button[aria-pressed="true"] { border-color: var(--accent); color: var(--txt-primary); }
+      @media (prefers-reduced-motion: reduce) { .stage { box-shadow: none; } }
+    </style>
+  </head>
+  <body>
+    <h1>Panes</h1>
+    <div class="stage" id="stage">
+      <div class="field"><canvas id="c"></canvas><p class="wordmark" id="wm">OpenKaava</p></div>
+      <div class="bar">
+        <div class="track"><div class="fill" id="fill"></div></div>
+        <div class="row"><span class="label" id="label">Starting…</span><span class="step" id="step"></span></div>
+      </div>
+    </div>
+    <div class="controls" id="theme"></div>
+    <div class="controls" id="accent"></div>
+    <div class="controls" id="actions"></div>
+    <p class="note">Concept: the splash is a miniature of the window; regions assemble one per boot step and become the first real frame. Simulated boot.</p>
+
+    <script>
+      "use strict";
+      /*
+       * The shared harness. `K` stands in for boot.rs: five steps arrive on a
+       * fixed schedule with the real labels' shape, then a "Finalizing" hold,
+       * then ready. A concept only reads `K` and draws; it never owns timing.
+       *   K.t         seconds since the run began
+       *   K.step      1-based step in flight (0 before the first), K.total
+       *   K.p         progress 0..1, eased toward step/total
+       *   K.phase     "working" | "finalizing" | "ready" | "failed"
+       *   K.ready     0..1, eased once ready (for the exit beat)
+       *   K.age(i)    seconds since step i began, or -1 if it has not
+       *   K.pal()     resolved colours for the canvas
+       */
+      var K = {
+        total: 5,
+        labels: ["Reading project manifest", "Restoring clusters", "Starting terminals",
+                 "Starting File Explorer and File Viewer", "Attaching environments"],
+        starts: [0.35, 1.25, 2.1, 3.15, 4.0],
+        readyAt: 4.9,
+        t: 0, step: 0, p: 0, ready: 0, phase: "working", failAt: -1, wordmark: true,
+        age: function (i) { return this.t >= this.starts[i - 1] ? this.t - this.starts[i - 1] : -1; },
+        pal: function () {
+          var cs = getComputedStyle(document.documentElement), g = function (n) { return cs.getPropertyValue(n).trim(); };
+          return { ground: g("--bg-surface-1"), canvas: g("--bg-canvas"), layer: g("--bg-layer-1"), layer2: g("--bg-layer-2"),
+                   line: g("--border-subtle"), line2: g("--border-subtle-1"), line3: g("--border-strong"),
+                   txt: g("--txt-primary"), txt2: g("--txt-secondary"), txt3: g("--txt-tertiary"),
+                   dim: g("--txt-disabled"), accent: g("--accent"), danger: g("--danger"),
+                   light: document.documentElement.dataset.theme === "light" };
+        },
+      };
+      var els = { fill: document.getElementById("fill"), label: document.getElementById("label"),
+                  step: document.getElementById("step"), stage: document.getElementById("stage"),
+                  wm: document.getElementById("wm") };
+      var canvas = document.getElementById("c"), ctx = canvas.getContext("2d");
+      var qs = new URLSearchParams(location.search);
+      var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var W = 0, H = 0;
+
+      function resize() {
+        var r = canvas.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
+        W = r.width; H = r.height;
+        canvas.width = Math.round(W * d); canvas.height = Math.round(H * d);
+        ctx.setTransform(d, 0, 0, d, 0, 0);
+        if (K.onResize) K.onResize(W, H);
+        if (freeze && K.draw) K.draw(ctx, W, H, K.pal());
+      }
+
+      function advance(dt) {
+        K.t += dt;
+        var s = 0;
+        for (var i = 0; i < K.total; i++) if (K.t >= K.starts[i]) s = i + 1;
+        if (K.phase === "working" || K.phase === "finalizing") K.step = s;
+        if (K.failAt >= 0 && K.t >= K.failAt && K.phase !== "failed") K.phase = "failed";
+        if (K.phase === "working" && K.t >= K.readyAt) K.phase = "finalizing";
+        var target = K.phase === "working" ? K.step / K.total : K.phase === "finalizing" ? 0.95 : K.phase === "ready" ? 1 : K.p;
+        if (K.phase === "finalizing" && K.t >= K.readyAt + 0.45) K.phase = "ready";
+        K.p += (target - K.p) * Math.min(1, dt * 9);
+        if (K.phase === "ready") K.ready = Math.min(1, K.ready + dt / 0.8);
+        if (K.t > K.readyAt + 4.2 && !freeze) reset();
+      }
+
+      function chrome() {
+        els.fill.style.width = (K.p * 100).toFixed(2) + "%";
+        els.stage.classList.toggle("failed", K.phase === "failed");
+        els.label.textContent = K.phase === "working" ? (K.step ? K.labels[K.step - 1] : "Starting…")
+          : K.phase === "finalizing" ? "Finalizing" : K.phase === "ready" ? "Ready" : "Startup failed";
+        els.step.textContent = K.phase === "working" && K.step ? K.step + " / " + K.total : "";
+        els.wm.style.display = K.wordmark ? "" : "none";
+      }
+
+      function reset() { K.t = 0; K.step = 0; K.p = 0; K.ready = 0; K.phase = "working"; K.failAt = -1; if (K.onReset) K.onReset(); }
+
+      var freeze = qs.has("freeze") ? parseFloat(qs.get("freeze")) : 0;
+      var last = 0;
+      function frame(now) {
+        var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016; last = now;
+        if (reduce) { K.t = K.readyAt; K.step = K.total; K.phase = "finalizing"; K.p = 0.95; }
+        else advance(dt);
+        chrome(); K.draw(ctx, W, H, K.pal());
+        requestAnimationFrame(frame);
+      }
+
+      function chip(host, items, current, onPick) {
+        items.forEach(function (it, i) {
+          var b = document.createElement("button"); b.textContent = it[0];
+          b.setAttribute("aria-pressed", String(i === current));
+          b.addEventListener("click", function () {
+            [].forEach.call(host.children, function (c, j) { c.setAttribute("aria-pressed", String(j === i)); });
+            onPick(it[1]);
+          });
+          host.appendChild(b);
+        });
+      }
+      var root = document.documentElement;
+      root.dataset.theme = qs.get("theme") === "light" ? "light" : "dark";
+      if (qs.get("accent") !== "none") root.dataset.accent = qs.get("accent") || "blue";
+      chip(document.getElementById("theme"), [["Dark", "dark"], ["Light", "light"]], root.dataset.theme === "light" ? 1 : 0,
+           function (v) { root.dataset.theme = v; });
+      var accents = ["neutral", "amber", "blue", "green", "violet", "coral"];
+      chip(document.getElementById("accent"), accents.map(function (a) { return [a[0].toUpperCase() + a.slice(1), a]; }),
+           accents.indexOf(root.dataset.accent || "neutral"),
+           function (v) { if (v === "neutral") delete root.dataset.accent; else root.dataset.accent = v; });
+      chip(document.getElementById("actions"), [["Replay", "r"], ["Fail at step 3", "f"]], -1,
+           function (v) { reset(); if (v === "f") K.failAt = K.starts[2] + 0.6; });
+
+      window.addEventListener("resize", resize);
+    </script>
+    <script>
+/*
+ * Panes. The splash is a miniature of the window it is about to hand over to:
+ * canvas-coloured chrome, then regions with the design system's gutter and
+ * radius assembling one per boot step. When boot is ready the final layout
+ * is the real first frame, so the handoff is a cross-fade, not a cut.
+ * In the app the pane rectangles would come from the restored cluster layout
+ * (.kaava/layout/*.json), so it always previews what is about to open.
+ */
+(function () {
+  K.wordmark = false;
+  var G = 5, R = 6, RAIL = 26, TITLE = 22;
+  var panes = [];
+
+  // Each pane: which step brings it in, its share of the free area, and its content.
+  var DEFS = [
+    { step: 2, x: 0, y: 0, w: 0.22, h: 1, kind: "tree" },
+    { step: 3, x: 0.22, y: 0.55, w: 0.48, h: 0.45, kind: "term" },
+    { step: 4, x: 0.22, y: 0, w: 0.48, h: 0.55, kind: "view" },
+    { step: 5, x: 0.7, y: 0, w: 0.3, h: 1, kind: "panel" },
+  ];
+
+  K.onResize = function (w, h) {
+    var x0 = RAIL + G, y0 = TITLE + G, aw = w - x0 - G, ah = h - y0 - G;
+    panes = DEFS.map(function (d) {
+      return { def: d, x: x0 + d.x * aw + (d.x > 0 ? G / 2 : 0), y: y0 + d.y * ah + (d.y > 0 ? G / 2 : 0),
+               w: d.w * aw - (d.x > 0 ? G / 2 : 0) - (d.x + d.w < 0.999 ? G / 2 : 0), h: d.h * ah - (d.y > 0 ? G / 2 : 0) - (d.y + d.h < 0.999 ? G / 2 : 0) };
+    });
+  };
+
+  function rr(c, x, y, w, h, r) {
+    c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+  }
+  function ease(u) { u = Math.max(0, Math.min(1, u)); return 1 - Math.pow(1 - u, 3); }
+
+  function content(c, p, P, a, age, accent) {
+    var d = p.def, x = p.x, y = p.y, w = p.w, h = p.h;
+    // tab strip
+    c.fillStyle = P.line; c.fillRect(x, y + 17, w, 1);
+    c.fillStyle = P.layer2; rr(c, x + 6, y + 4, 34, 10, 3); c.fill();
+    c.fillStyle = P.dim; c.fillRect(x + 12, y + 8, 22, 2);
+    var shimmer = function (i) { return 0.35 + 0.25 * Math.sin(age * 5 + i * 1.7); };
+    if (d.kind === "tree") {
+      for (var i = 0; i < 9; i++) {
+        var ry = y + 26 + i * 15; if (ry > y + h - 10) break;
+        var ind = (i % 3 === 1 ? 10 : i % 3 === 2 ? 20 : 0);
+        c.globalAlpha = a * (age < 1 ? Math.min(1, Math.max(0, age * 4 - i * 0.25)) : 1) * 0.9;
+        c.fillStyle = P.dim; rr(c, x + 8 + ind, ry, 7, 7, 2); c.fill();
+        c.fillStyle = P.line3; c.fillRect(x + 20 + ind, ry + 2, (26 + (i * 13) % 30), 3);
+      }
+    } else if (d.kind === "term") {
+      for (var k = 0; k < 6; k++) {
+        var ly = y + 26 + k * 11; if (ly > y + h - 8) break;
+        c.globalAlpha = a * Math.min(1, Math.max(0, age * 5 - k * 0.4));
+        c.fillStyle = k === 0 ? accent : P.line3; c.fillRect(x + 8, ly, k === 0 ? 8 : 14 + ((k * 37) % 60), 3);
+        if (k > 0) { c.fillStyle = P.line2; c.fillRect(x + 8 + 20 + ((k * 37) % 60), ly, 30 + (k * 19) % 40, 3); }
+      }
+      c.globalAlpha = a * (Math.sin(age * 7) > 0 ? 1 : 0.2); c.fillStyle = accent; c.fillRect(x + 8, y + h - 14, 5, 8);
+    } else if (d.kind === "view") {
+      // a wireframe cube, the viewer's stand-in for a Godot or Blender scene
+      var cx = x + w / 2, cy = y + 18 + (h - 18) / 2, s = Math.min(w, h) * 0.22, t = age * 0.8;
+      var V = [];
+      for (var q = 0; q < 8; q++) {
+        var vx = (q & 1 ? 1 : -1), vy = (q & 2 ? 1 : -1), vz = (q & 4 ? 1 : -1);
+        var rx = vx * Math.cos(t) - vz * Math.sin(t), rz = vx * Math.sin(t) + vz * Math.cos(t);
+        var ry2 = vy * Math.cos(0.6) - rz * Math.sin(0.6), rz2 = vy * Math.sin(0.6) + rz * Math.cos(0.6);
+        V.push([cx + rx * s, cy + ry2 * s, rz2]);
+      }
+      c.globalAlpha = a; c.strokeStyle = accent; c.lineWidth = 1;
+      [[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]].forEach(function (e) {
+        c.globalAlpha = a * (0.4 + 0.3 * (V[e[0]][2] + V[e[1]][2] > 0 ? 1 : 0.4));
+        c.beginPath(); c.moveTo(V[e[0]][0], V[e[0]][1]); c.lineTo(V[e[1]][0], V[e[1]][1]); c.stroke();
+      });
+    } else {
+      // right panel: a list of agent cards, each with a status dot
+      for (var m = 0; m < 4; m++) {
+        var cy2 = y + 26 + m * 34; if (cy2 > y + h - 30) break;
+        c.globalAlpha = a * Math.min(1, Math.max(0, age * 3 - m * 0.3));
+        c.fillStyle = P.layer; rr(c, x + 7, cy2, w - 14, 28, 4); c.fill();
+        c.strokeStyle = P.line; c.lineWidth = 1; c.stroke();
+        c.fillStyle = m === 0 ? accent : P.dim; c.beginPath(); c.arc(x + 15, cy2 + 10, 2.5, 0, 6.283); c.fill();
+        c.fillStyle = P.line3; c.fillRect(x + 23, cy2 + 8, 30 + m * 8, 3);
+        c.fillStyle = P.line2; c.fillRect(x + 12, cy2 + 19, w - 34 - m * 6, 3);
+      }
+    }
+    c.globalAlpha = 1;
+  }
+
+  K.draw = function (c, w, h, P) {
+    c.clearRect(0, 0, w, h);
+    var failed = K.phase === "failed", accent = failed ? P.danger : P.accent;
+    var exitT = ease(K.ready), zoom = 1 + 0.012 * exitT;
+    c.save(); c.translate(w / 2, h / 2); c.scale(zoom, zoom); c.translate(-w / 2, -h / 2);
+
+    // window ground: canvas colour, as the real title bar and gutters are
+    c.fillStyle = P.canvas; c.fillRect(0, 0, w, h);
+
+    // step 1: title bar and cluster rail arrive together
+    var a1 = ease(K.age(1) * 2.5);
+    c.globalAlpha = a1;
+    c.fillStyle = P.line; c.fillRect(0, TITLE - 1, w, 1);
+    for (var i = 0; i < 3; i++) {
+      c.fillStyle = i === 0 ? accent : P.line3; rr(c, 7, TITLE + 8 + i * 22, 12, 12, 4); c.fill();
+    }
+    for (var t = 0; t < 3; t++) { c.fillStyle = P.line3; c.beginPath(); c.arc(w - 14 - t * 10, TITLE / 2, 2, 0, 6.283); c.fill(); }
+    c.globalAlpha = 1;
+
+    // regions
+    panes.forEach(function (p) {
+      var age = K.age(p.def.step), a = ease(age * 2.2);
+      if (age < 0) {
+        c.globalAlpha = 0.5; c.strokeStyle = P.line; c.lineWidth = 1; c.setLineDash([3, 4]);
+        rr(c, p.x + 0.5, p.y + 0.5, p.w - 1, p.h - 1, R); c.stroke(); c.setLineDash([]); c.globalAlpha = 1; return;
+      }
+      var s = 0.965 + 0.035 * a, cx = p.x + p.w / 2, cy = p.y + p.h / 2;
+      c.save(); c.translate(cx, cy); c.scale(s, s); c.translate(-cx, -cy);
+      c.globalAlpha = a; c.fillStyle = P.ground; rr(c, p.x, p.y, p.w, p.h, R); c.fill();
+      c.strokeStyle = P.line; c.lineWidth = 1; c.stroke();
+      c.save(); rr(c, p.x, p.y, p.w, p.h, R); c.clip();
+      content(c, p, P, a, age, accent);
+      c.restore();
+      // the region still loading carries a thin accent edge
+      var busy = K.phase === "working" && K.step === p.def.step;
+      if (busy) { c.globalAlpha = 0.55 + 0.35 * Math.sin(K.t * 5); c.strokeStyle = accent; rr(c, p.x + 0.5, p.y + 0.5, p.w - 1, p.h - 1, R); c.stroke(); }
+      c.restore();
+    });
+
+    // the wordmark rests centred over the empty window, then settles into the title bar
+    var move = ease((K.step - 1) / 2), wx = w / 2, wy = h / 2, tx = 10 + RAIL + 4, ty = TITLE / 2;
+    var fx = wx + (tx - wx) * move, fy = wy + (ty - wy) * move, size = 20 - 9 * move;
+    c.globalAlpha = 1; c.fillStyle = P.txt; c.textBaseline = "middle";
+    c.font = "600 " + size.toFixed(1) + "px " + getComputedStyle(document.documentElement).getPropertyValue("--sans");
+    var text = "OPENKAAVA", sp = size * 0.16;
+    var tw = 0; for (var k = 0; k < text.length; k++) tw += c.measureText(text[k]).width + sp;
+    var startX = wx - (tw - sp) / 2, px = startX + (tx - startX) * move;
+    for (var m = 0; m < text.length; m++) { c.fillText(text[m], px, fy); px += c.measureText(text[m]).width + sp; }
+    c.restore();
+  };
+})();
+
+    </script>
+    <script>
+      resize();
+      if (K.onReset) K.onReset();
+      if (freeze) {
+        for (var s = 0; s < freeze * 60; s++) advance(1 / 60);
+        chrome(); K.draw(ctx, W, H, K.pal());
+      } else requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

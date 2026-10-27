@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kaava splash round 2: Ink</title>
+    <style>
+      /* Tokens copied from src/tokens.css (dark and light). Blue is the new default accent. */
+      :root {
+        --bg-canvas: #0f0f10;
+        --bg-surface-1: #141415;
+        --bg-layer-1: #181a1b;
+        --border-subtle: #222425;
+        --border-subtle-1: #2c2e30;
+        --border-strong: #36393a;
+        --txt-primary: #e4e6e6;
+        --txt-secondary: #cacdce;
+        --txt-tertiary: #afb3b6;
+        --txt-disabled: #7a8185;
+        --danger: #e5534b;
+        --accent-amber: #d98a3f;
+        --accent-blue: #3f76ff;
+        --accent-green: #4cb863;
+        --accent-violet: #a585f0;
+        --accent-coral: #e5736b;
+        --accent: var(--txt-primary);
+        --radius-region: 10px;
+        --radius-xl: 12px;
+        --shadow-overlay: 0 12px 32px -6px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
+        --sans: Inter, "Inter Variable", system-ui, "Segoe UI", sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+        color-scheme: dark;
+      }
+      :root[data-theme="light"] {
+        --bg-canvas: #f2f2f3;
+        --bg-surface-1: #ffffff;
+        --bg-layer-1: #f9f9f9;
+        --border-subtle: #eaebec;
+        --border-subtle-1: #e1e2e3;
+        --border-strong: #d5d7d9;
+        --txt-primary: #0f0f10;
+        --txt-secondary: #313435;
+        --txt-tertiary: #494d50;
+        --txt-disabled: #767c7f;
+        --danger: #bf2c22;
+        --accent-amber: #a85a14;
+        --accent-blue: #2b5ce6;
+        --accent-green: #23803b;
+        --accent-violet: #6c47c9;
+        --accent-coral: #b8392f;
+        --shadow-overlay: 0 12px 32px -6px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.12);
+        color-scheme: light;
+      }
+      :root[data-accent="amber"] { --accent: var(--accent-amber); }
+      :root[data-accent="blue"] { --accent: var(--accent-blue); }
+      :root[data-accent="green"] { --accent: var(--accent-green); }
+      :root[data-accent="violet"] { --accent: var(--accent-violet); }
+      :root[data-accent="coral"] { --accent: var(--accent-coral); }
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; }
+      body {
+        min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+        color: var(--txt-secondary); font: 450 13px var(--sans);
+        /* Desktop stand-in, harness only: a blurred wallpaper so the window's corners and shadow read against something. */
+        background:
+          radial-gradient(60% 70% at 15% 20%, #3b4a6b 0%, transparent 70%),
+          radial-gradient(55% 60% at 88% 12%, #6b4a52 0%, transparent 70%),
+          radial-gradient(70% 70% at 70% 95%, #2f5a55 0%, transparent 70%),
+          #2a2d38;
+      }
+      :root[data-theme="light"] body {
+        background:
+          radial-gradient(60% 70% at 15% 20%, #b9c8e8 0%, transparent 70%),
+          radial-gradient(55% 60% at 88% 12%, #e8c6c9 0%, transparent 70%),
+          radial-gradient(70% 70% at 70% 95%, #b7dccf 0%, transparent 70%),
+          #d9dce6;
+      }
+      /* The splash window: root canvas colour, 12px window radius, 6px gutter round a 10px-radius region. */
+      .window {
+        width: min(92vw, 880px); aspect-ratio: 880 / 540; padding: 6px; position: relative;
+        background: var(--bg-canvas); border: 1px solid var(--border-subtle-1); border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-overlay);
+      }
+      .region {
+        position: relative; width: 100%; height: 100%; overflow: hidden; isolation: isolate;
+        background: var(--bg-surface-1); border: 1px solid var(--border-subtle); border-radius: var(--radius-region);
+      }
+      canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+      .grain { position: absolute; inset: -60px; pointer-events: none; opacity: 0.09; mix-blend-mode: overlay; animation: grain 0.9s steps(1) infinite; }
+      :root[data-theme="light"] .grain { opacity: 0.055; mix-blend-mode: multiply; }
+      @keyframes grain {
+        0% { transform: translate(0, 0); } 20% { transform: translate(-31px, 17px); } 40% { transform: translate(23px, -41px); }
+        60% { transform: translate(-47px, -12px); } 80% { transform: translate(35px, 29px); }
+      }
+      .ui { position: absolute; inset: 0; pointer-events: none; }
+      .wordmark { position: absolute; margin: 0; font: 600 19px/1 var(--sans); letter-spacing: 0.02em; color: var(--txt-primary); }
+      .status { position: absolute; display: flex; align-items: center; gap: 12px; font: 500 11px/1 var(--mono); color: var(--txt-tertiary); white-space: nowrap; }
+      .ticks { display: flex; gap: 3px; }
+      .ticks i { display: block; width: 12px; height: 2px; border-radius: 1px; background: var(--border-strong); transition: background 0.4s; }
+      .ticks i.on { background: var(--accent); }
+      .ticks i.cur { background: var(--txt-tertiary); }
+      .failed .ticks i.cur { background: var(--danger); }
+      .failed .step { color: var(--danger); }
+      .aux { position: absolute; font: 450 11px/1.5 var(--mono); color: var(--txt-disabled); white-space: pre; }
+      .art, .ui > * { will-change: opacity; }
+      .controls { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 880px; }
+      button {
+        height: 26px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 6px;
+        background: var(--bg-layer-1); color: var(--txt-secondary); font: 500 12px var(--sans); cursor: pointer;
+      }
+      button[aria-pressed="true"] { border-color: var(--accent); color: var(--txt-primary); }
+      .note { max-width: 640px; margin: 0; text-align: center; font-size: 12px; color: #fff; opacity: 0.85; line-height: 1.45; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+      :root[data-theme="light"] .note { color: #1a1c20; text-shadow: none; }
+      .perf { font: 11px var(--mono); opacity: 0.7; color: #fff; }
+      :root[data-theme="light"] .perf { color: #1a1c20; }
+      @media (prefers-reduced-motion: reduce) { .grain { animation: none; } }
+      
+    </style>
+  </head>
+  <body>
+    <div class="window" id="win">
+      <div class="region" id="stage">
+        <canvas id="c" class="art"></canvas>
+        <div class="grain" id="grain"></div>
+        <div class="ui" id="ui">
+          <p class="wordmark" id="wm">OpenKaava</p>
+          <div class="status" id="status" role="progressbar" aria-label="OpenKaava startup" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" aria-live="polite">
+            <span class="ticks" id="ticks"><i></i><i></i><i></i><i></i><i></i></span><span class="step" id="step"></span>
+          </div>
+          <div class="aux" id="aux"></div>
+        </div>
+      </div>
+    </div>
+    <div class="controls" id="theme"></div>
+    <div class="controls" id="accent"></div>
+    <div class="controls" id="actions"></div>
+    <span class="perf" id="perf"></span>
+    <p class="note">Five drops of pigment diffuse into still water, one per boot step, settling into a balanced composition. Simulated boot. Query: ?freeze=SECONDS &amp; fail=SECONDS &amp; theme=light &amp; accent=amber|none &amp; seed=N.</p>
+
+    <script>
+      "use strict";
+      /*
+       * Shared harness. `K` stands in for boot.rs: five steps on a fixed schedule, a Finalizing hold, then ready.
+       * A concept reads K and implements onReset / onResize / update(dt) / draw(ctx,w,h,P). It never owns timing.
+       *   K.t / K.te    seconds since start / the same, but stopped at the moment of failure
+       *   K.step        1-based step in flight, K.total steps; K.phase working|finalizing|ready|failed
+       *   K.ageE(i)     seconds step i has been running (stops at failure), -1 before it starts
+       *   K.ready 0..1  the climax ramp;  K.fk 0..1  failure ramp;  K.exit 0..1  hand-off fade
+       *   K.rand()      seeded per launch;  K.noise(x,y)  seeded value noise in -1..1
+       */
+      var qs = new URLSearchParams(location.search);
+      var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches || qs.get("reduce") === "1";
+      var freeze = qs.has("freeze") ? parseFloat(qs.get("freeze")) : -1;
+      var K = {
+        total: 5,
+        names: ["manifest", "clusters", "terminals", "viewers", "environments"],
+        starts: [0.35, 1.25, 2.1, 3.15, 4.0], readyAt: 4.9,
+        t: 0, te: 0, step: 0, p: 0, ready: 0, fk: 0, exit: 0, hold: 0, phase: "working", failAt: -1, plannedFail: -1,
+        seed: 1, scale: 1, reduce: reduce, dirty: true, _pal: null,
+        E: {
+          c01: function (x) { return x < 0 ? 0 : x > 1 ? 1 : x; },
+          smooth: function (x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); },
+          out3: function (x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return 1 - Math.pow(1 - x, 3); },
+          out5: function (x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return 1 - Math.pow(1 - x, 5); },
+          inOut3: function (x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; },
+          outBack: function (x) { x = x < 0 ? 0 : x > 1 ? 1 : x; var c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); },
+          lerp: function (a, b, t) { return a + (b - a) * t; },
+        },
+        ageE: function (i) { var s = this.starts[i - 1]; return this.te >= s ? this.te - s : -1; },
+        rand: function () { return 0; }, noise: function () { return 0; },
+      };
+
+      function mulberry(a) { return function () { a |= 0; a = a + 0x6d2b79f5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+      function seedAll(seed) {
+        K.seed = seed; K.rand = mulberry(seed);
+        var r = mulberry(seed * 7919 + 13), grid = new Float32Array(256 * 256);
+        for (var i = 0; i < grid.length; i++) grid[i] = r() * 2 - 1;
+        K.noise = function (x, y) {
+          var xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+          var u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf), a = xi & 255, b = yi & 255, a1 = (a + 1) & 255, b1 = (b + 1) & 255;
+          var n00 = grid[b * 256 + a], n10 = grid[b * 256 + a1], n01 = grid[b1 * 256 + a], n11 = grid[b1 * 256 + a1];
+          return (n00 + (n10 - n00) * u) * (1 - v) + (n01 + (n11 - n01) * u) * v;
+        };
+      }
+
+      /* ---- colour: everything a concept draws derives from the accent ---- */
+      function hexRgb(h) { h = h.replace("#", ""); if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)]; }
+      function rgbHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255; var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, s = 0, d = mx - mn;
+        if (d) { s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+        return [h, s, l];
+      }
+      function hslRgb(h, s, l) {
+        h = ((h % 360) + 360) % 360 / 360; if (s === 0) { var v = Math.round(l * 255); return [v, v, v]; }
+        var q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+        function f(t) { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }
+        return [Math.round(f(h + 1 / 3) * 255), Math.round(f(h) * 255), Math.round(f(h - 1 / 3) * 255)];
+      }
+      K.pal = function () {
+        if (!K._pal || K.dirty) {
+          var cs = getComputedStyle(document.documentElement), g = function (n) { return cs.getPropertyValue(n).trim(); };
+          var acc = g("--accent"), hs = rgbHsl.apply(null, hexRgb(acc)), neutral = !document.documentElement.dataset.accent;
+          var P = { light: document.documentElement.dataset.theme === "light", neutral: neutral, bg: g("--bg-surface-1"), canvas: g("--bg-canvas"),
+                    ink: g("--txt-primary"), ink2: g("--txt-secondary"), ink3: g("--txt-tertiary"), dim: g("--txt-disabled"),
+                    line: g("--border-subtle-1"), danger: g("--danger"), accent: acc, h: hs[0], s: neutral ? 0.02 : hs[1] };
+          P.bgRgb = hexRgb(P.bg); P.inkRgb = hexRgb(P.ink); P.dangerRgb = hexRgb(P.danger);
+          /* dh: hue offset, sm: saturation multiplier, l: lightness 0..1, a: alpha */
+          P.hsl = function (dh, sm, l, a) { return "hsla(" + (((P.h + dh) % 360 + 360) % 360).toFixed(1) + "," + (Math.min(1, P.s * sm) * 100).toFixed(1) + "%," + (l * 100).toFixed(1) + "%," + (a === undefined ? 1 : a) + ")"; };
+          P.rgb = function (dh, sm, l) { return hslRgb(P.h + dh, Math.min(1, P.s * sm), l); };
+          P.rgba = function (c, a) { return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")"; };
+          K._pal = P; K.dirty = false; if (K.onPal) K.onPal(P);
+        }
+        return K._pal;
+      };
+
+      var els = { stage: document.getElementById("stage"), win: document.getElementById("win"), status: document.getElementById("status"), step: document.getElementById("step"),
+                  ticks: [].slice.call(document.querySelectorAll("#ticks i")), canvas: document.getElementById("c"), ui: document.getElementById("ui") };
+      var canvas = els.canvas, ctx = canvas.getContext("2d"), W = 0, H = 0;
+
+      function resize() {
+        var r = els.stage.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2), sc = K.scale;
+        W = els.stage.clientWidth; H = els.stage.clientHeight;
+        canvas.width = Math.round(W * d * sc); canvas.height = Math.round(H * d * sc);
+        ctx.setTransform(d * sc, 0, 0, d * sc, 0, 0);
+        K.W = W; K.H = H; K.dpr = d;
+        if (K.onResize) K.onResize(W, H);
+        K.dirty = true; needsDraw = true;
+      }
+
+      function advance(dt) {
+        K.t += dt;
+        K.te = (K.failAt >= 0 && K.t >= K.failAt) ? K.failAt : K.t;
+        var s = 0; for (var i = 0; i < K.total; i++) if (K.t >= K.starts[i]) s = i + 1;
+        if (K.failAt >= 0 && K.t >= K.failAt && K.phase !== "failed") K.phase = "failed";
+        if (K.phase === "working" || K.phase === "finalizing") K.step = s;
+        if (K.phase === "working" && K.t >= K.readyAt) K.phase = "finalizing";
+        if (K.phase === "finalizing" && K.t >= K.readyAt + 0.45) K.phase = "ready";
+        var target = K.phase === "working" ? K.step / K.total : K.phase === "finalizing" ? 0.95 : K.phase === "ready" ? 1 : K.p;
+        K.p += (target - K.p) * Math.min(1, dt * 9);
+        if (K.phase === "ready") { K.ready = Math.min(1, K.ready + dt / 1.6); if (K.ready >= 1) { K.hold += dt; K.exit = Math.max(0, Math.min(1, (K.hold - 1.4) / 0.7)); } }
+        if (K.phase === "failed") K.fk = Math.min(1, K.fk + dt / 1.0);
+        if (K.update) K.update(dt);
+      }
+      function resetState(keepFail) {
+        K.t = K.te = 0; K.step = 0; K.p = 0; K.ready = 0; K.fk = 0; K.exit = 0; K.hold = 0; K.phase = "working";
+        K.failAt = keepFail ? K.plannedFail : -1;
+        if (K.onReset) K.onReset();
+      }
+      function reset(fail, newSeed) {
+        if (newSeed !== false) seedAll(qs.has("seed") ? parseInt(qs.get("seed"), 10) : 1 + Math.floor(Math.random() * 99999));
+        K.plannedFail = fail === undefined ? -1 : fail; resetState(true); needsDraw = true;
+      }
+      function simTo(T, dt) { resetState(true); while (K.t < T - 1e-9) advance(Math.min(dt, T - K.t)); needsDraw = true; }
+
+      function chrome() {
+        var live = K.phase === "working" || K.phase === "finalizing", s = K.step, nm = K.names[Math.max(0, s - 1)], txt;
+        if (K.phase === "ready") txt = "ready";
+        else if (K.phase === "failed") txt = s + " / " + K.total + " · " + nm + " · failed";
+        else if (K.phase === "finalizing") txt = "5 / 5 · finalizing";
+        else txt = s ? s + " / " + K.total + " · " + nm : "starting";
+        if (els.step.textContent !== txt) els.step.textContent = txt;
+        var done = K.phase === "ready" ? 5 : K.phase === "finalizing" ? 5 : Math.max(0, s - 1);
+        els.ticks.forEach(function (t, i) {
+          var on = i < done, cur = !on && i === s - 1 && K.phase !== "ready";
+          t.className = on ? "on" : cur ? "cur" : "";
+        });
+        els.stage.classList.toggle("failed", K.phase === "failed");
+        els.status.setAttribute("aria-valuenow", K.phase === "ready" ? 5 : s);
+        var o = 1 - K.exit; canvas.style.opacity = o; els.ui.style.opacity = o; 
+      }
+
+      var needsDraw = true, last = 0, wall = qs.has("wall") ? parseFloat(qs.get("wall")) : 0, rkey = null, perfN = 0, perfSum = 0, perfMax = 0;
+      function reducedKey() {
+        if (K.plannedFail >= 0 && wall >= K.plannedFail) return "f";
+        if (wall >= K.readyAt + 0.45) return "r";
+        var s = 0; for (var i = 0; i < K.total; i++) if (wall >= K.starts[i]) s = i + 1; return String(s);
+      }
+      function frame(now) {
+        var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016; last = now;
+        if (freeze >= 0) { /* frozen at a chosen moment: redraw only when something changed */ }
+        else if (reduce) {
+          wall += dt; var k = reducedKey();
+          if (k !== rkey) { rkey = k; simTo(k === "f" ? K.plannedFail + 1.6 : k === "r" ? K.readyAt + 0.45 + 1.9 : k === "0" ? 0.2 : K.starts[+k - 1] + 0.9, 1 / 30); }
+          if (K.hold > 3) { wall = 0; rkey = null; }
+        } else {
+          advance(dt);
+          if (K.exit >= 1 && K.hold > 1.4 + 0.7 + 0.9 && K.plannedFail < 0) reset(-1);
+        }
+        if (needsDraw || (!reduce && freeze < 0)) {
+          chrome(); var t0 = performance.now(); K.draw(ctx, W, H, K.pal()); var dtm = performance.now() - t0;
+          perfSum += dtm; perfN++; if (dtm > perfMax) perfMax = dtm;
+          if (perfN >= 60) { document.getElementById("perf").textContent = "draw " + (perfSum / perfN).toFixed(2) + " ms avg, " + perfMax.toFixed(1) + " ms max (JS side, last 60 frames)"; perfN = 0; perfSum = 0; perfMax = 0; }
+          needsDraw = false;
+        }
+        requestAnimationFrame(frame);
+      }
+
+      function chip(host, items, current, onPick) {
+        items.forEach(function (it, i) {
+          var b = document.createElement("button"); b.textContent = it[0]; b.setAttribute("aria-pressed", String(i === current));
+          b.addEventListener("click", function () {
+            [].forEach.call(host.children, function (c, j) { c.setAttribute("aria-pressed", String(j === i)); });
+            onPick(it[1]);
+          });
+          host.appendChild(b);
+        });
+      }
+      var root = document.documentElement;
+      root.dataset.theme = qs.get("theme") === "light" ? "light" : "dark";
+      if (qs.get("accent") !== "none") root.dataset.accent = qs.get("accent") || "blue";
+      function restyle() { K.dirty = true; needsDraw = true; }
+      chip(document.getElementById("theme"), [["Dark", "dark"], ["Light", "light"]], root.dataset.theme === "light" ? 1 : 0, function (v) { root.dataset.theme = v; restyle(); });
+      var accents = ["neutral", "amber", "blue", "green", "violet", "coral"];
+      chip(document.getElementById("accent"), accents.map(function (a) { return [a[0].toUpperCase() + a.slice(1), a]; }), accents.indexOf(root.dataset.accent || "neutral"),
+           function (v) { if (v === "neutral") delete root.dataset.accent; else root.dataset.accent = v; restyle(); });
+      chip(document.getElementById("actions"), [["Replay", "r"], ["Fail at step 3", "f"]], -1, function (v) { wall = 0; rkey = null; reset(v === "f" ? K.starts[2] + 0.6 : -1); });
+
+      /* grain tile, generated once */
+      (function () {
+        var g = document.createElement("canvas"); g.width = g.height = 160; var gc = g.getContext("2d"), im = gc.createImageData(160, 160), r = mulberry(99);
+        for (var i = 0; i < im.data.length; i += 4) { var v = 128 + (r() - 0.5) * 200; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; }
+        gc.putImageData(im, 0, 0); document.getElementById("grain").style.backgroundImage = "url(" + g.toDataURL() + ")";
+      })();
+    </script>
+    <script>
+/*
+ * Ink. Each boot step lets one drop of pigment fall into still water. A drop is
+ * a stack of translucent, noise-warped rings: the outer ones run ahead and
+ * ragged, the inner ones follow and fill, so density falls off like real
+ * diffusion and the edge pools darker. Five drops settle into one balanced
+ * composition; at ready a ripple leaves each drop and a fine ring is drawn
+ * around the largest, the way a painter signs.
+ */
+(function () {
+  var E = K.E, drops = [], L = 13, NV = 72, wm = document.getElementById("wm"), stat = document.getElementById("status");
+  K.scale = 0.5;
+  var SPEC = [
+    { x: 0.42, y: 0.50, R: 0.27, dh: 0,   sm: 1.0,  l: 0.50, a: 1.0 },
+    { x: 0.68, y: 0.38, R: 0.17, dh: 16,  sm: 0.9,  l: 0.54, a: 0.95 },
+    { x: 0.60, y: 0.71, R: 0.115, dh: -16, sm: 0.95, l: 0.46, a: 1.0 },
+    { x: 0.24, y: 0.29, R: 0.085, dh: 30,  sm: 0.8,  l: 0.6,  a: 0.9 },
+    { x: 0.81, y: 0.67, R: 0.055, dh: 165, sm: 0.55, l: 0.6,  a: 0.95 },
+  ];
+  var cosT = [], sinT = [];
+  for (var i = 0; i < NV; i++) { cosT.push(Math.cos(i / NV * 6.2832)); sinT.push(Math.sin(i / NV * 6.2832)); }
+
+  K.onReset = function () {
+    var r = K.rand;
+    drops = SPEC.map(function (s, i) { return { s: s, ox: (r() - 0.5) * 0.05, oy: (r() - 0.5) * 0.06, nx: r() * 200, ny: r() * 200, spin: r() * 6 }; });
+  };
+  K.onResize = function (w, h) {
+    wm.style.left = "28px"; wm.style.bottom = "26px"; wm.style.top = "auto";
+    stat.style.right = "28px"; stat.style.bottom = "28px"; stat.style.top = "auto";
+  };
+  K.update = function () {};
+
+  function bloom(c, P, d, idx, W, H, mode) {
+    var age = K.ageE(idx + 1); if (age < 0) return;
+    var s = d.s, cx = (s.x + d.ox) * W, cy = (s.y + d.oy) * H, R = s.R * H, t = K.te;
+    var breathe = 1 + 0.035 * E.smooth(K.ready * 1.2) + 0.012 * Math.sin(t * 0.5 + d.spin);
+    var desat = 1 - 0.7 * K.fk, light = P.light;
+    var col = P.rgb(s.dh, s.sm * desat, light ? s.l - 0.06 : s.l + 0.08);
+    var col2 = P.rgb(s.dh + 10, s.sm * desat, light ? s.l - 0.16 : s.l + 0.26);
+    c.globalCompositeOperation = mode;
+    for (var j = 0; j < L; j++) {
+      var fj = j / (L - 1), g = E.out3((age - (1 - fj) * 0.5) / (2.1 + 0.4 * idx));
+      if (g <= 0) continue;
+      var base = R * (0.22 + 0.78 * Math.pow(fj, 0.85)) * g * breathe, amp = (0.04 + 0.2 * Math.pow(fj, 1.8)) * (0.35 + 0.65 * g);
+      var fr = 0.55 + fj * 0.75, tt = t * 0.045, tj = d.nx + j * 0.31;
+      c.beginPath();
+      for (var v = 0; v < NV; v++) {
+        var nx = cosT[v] * fr + d.nx + tt, ny = sinT[v] * fr + d.ny + j * 0.29;
+        var n = K.noise(nx, ny) * 0.75 + K.noise(nx * 2.3 + 7, ny * 2.3 - tt * 2) * 0.25 * fj;
+        var rr = base * (1 + amp * n * 2);
+        var x = cx + cosT[v] * rr, y = cy + sinT[v] * rr * 0.96;
+        v ? c.lineTo(x, y) : c.moveTo(x, y);
+      }
+      c.closePath();
+      var mix = fj; // inner rings lean towards the lighter/hotter tone
+      var cc = [col[0] + (col2[0] - col[0]) * (1 - mix) | 0, col[1] + (col2[1] - col[1]) * (1 - mix) | 0, col[2] + (col2[2] - col[2]) * (1 - mix) | 0];
+      c.fillStyle = P.rgba(cc, (light ? 0.07 : 0.056) * s.a * (1 - 0.35 * K.fk));
+      c.fill();
+      if (j >= L - 2) { c.lineWidth = 1; c.strokeStyle = P.rgba(cc, (light ? 0.35 : 0.22) * g * s.a * (1 - 0.4 * K.fk)); c.stroke(); }
+    }
+    c.globalCompositeOperation = "source-over";
+  }
+
+  K.draw = function (c, w, h, P) {
+    c.globalCompositeOperation = "source-over";
+    c.fillStyle = P.bg; c.fillRect(0, 0, w, h);
+    var mode = P.light ? "multiply" : "lighter";
+    // a faint pool of light under the water, so the ink has somewhere to sit
+    var gr = c.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, w * 0.6);
+    gr.addColorStop(0, P.light ? "rgba(255,255,255,0)" : P.hsl(0, 0.8, 0.5, 0.05)); gr.addColorStop(1, "rgba(0,0,0,0)");
+    c.fillStyle = gr; c.fillRect(0, 0, w, h);
+    for (var i = 0; i < drops.length; i++) bloom(c, P, drops[i], i, w, h, mode);
+
+    if (K.ready > 0) {
+      // ripples leave each drop, then a signature ring is drawn round the first
+      for (var k = 0; k < drops.length; k++) {
+        var u = E.c01((K.ready - k * 0.06) / 0.7); if (u <= 0 || u >= 1) continue;
+        var d = drops[k], s = d.s, rr = s.R * h * (1.05 + 0.75 * E.out3(u));
+        c.strokeStyle = P.rgba(P.inkRgb, 0.16 * (1 - u)); c.lineWidth = 1;
+        c.beginPath(); c.arc((s.x + d.ox) * w, (s.y + d.oy) * h, rr, 0, 6.2832); c.stroke();
+      }
+      var d0 = drops[0], sweep = E.inOut3((K.ready - 0.25) / 0.7);
+      if (sweep > 0) {
+        c.strokeStyle = P.rgba(P.inkRgb, 0.55); c.lineWidth = 1.25;
+        c.beginPath(); c.arc((d0.s.x + d0.ox) * w, (d0.s.y + d0.oy) * h, d0.s.R * h * 1.16, -1.9, -1.9 + 6.05 * sweep); c.stroke();
+      }
+    }
+    if (K.phase === "failed") {
+      // the drop that never landed: a dry ring where it would have gone
+      var fi = Math.max(0, Math.min(4, K.step - 1)), df = drops[fi], sf = df.s;
+      c.setLineDash([3, 4]); c.strokeStyle = P.rgba(P.dangerRgb, 0.75 * K.fk); c.lineWidth = 1;
+      c.beginPath(); c.arc((sf.x + df.ox) * w, (sf.y + df.oy) * h, sf.R * h * 0.55 + 6, 0, 6.2832); c.stroke(); c.setLineDash([]);
+    }
+  };
+})();
+
+    </script>
+    <script>
+      window.addEventListener("resize", resize);
+      document.addEventListener("visibilitychange", function () { last = 0; });
+      seedAll(qs.has("seed") ? parseInt(qs.get("seed"), 10) : 1 + Math.floor(Math.random() * 99999));
+      K.plannedFail = qs.has("fail") ? parseFloat(qs.get("fail")) : -1;
+      resize(); resetState(true);
+      if (freeze >= 0) simTo(freeze, 1 / 60);
+      chrome(); K.draw(ctx, W, H, K.pal()); needsDraw = false;
+      if (qs.has("bench")) { /* dev aid: 420 frames of update + draw, JS-side only; the first 20 frames are warm-up */
+        resetState(true); var tu = 0, td = 0, mx = 0, nn = 0, first = 0;
+        for (var bi = 0; bi < 420; bi++) { var b0 = performance.now(); advance(1 / 60); var b1 = performance.now(); chrome(); K.draw(ctx, W, H, K.pal()); var b2 = performance.now();
+          if (bi === 0) first = b2 - b0; if (bi >= 20) { tu += b1 - b0; td += b2 - b1; nn++; if (b2 - b0 > mx) mx = b2 - b0; } }
+        document.title = "bench update " + (tu / nn).toFixed(2) + " draw " + (td / nn).toFixed(2) + " max " + mx.toFixed(1) + " first " + first.toFixed(0); resetState(true);
+      }
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>

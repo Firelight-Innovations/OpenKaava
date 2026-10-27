@@ -1,0 +1,19 @@
+{
+  "annotations": [],
+  "nodes": {
+    "01a07403-c800-71d3-82dc-995a0b8d612c": {
+      "collapsed": false,
+      "height": 128,
+      "width": 238,
+      "x": 40,
+      "y": 40
+    }
+  },
+  "schematic": "app",
+  "version": 1,
+  "viewport": {
+    "x": -3.352645112093711,
+    "y": -50.799059981564255,
+    "zoom": 2
+  }
+}

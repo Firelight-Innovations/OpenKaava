@@ -1,0 +1,61 @@
+{
+  "annotations": [],
+  "nodes": {
+    "01a07403-c800-75a7-9310-0210403f2911": {
+      "collapsed": false,
+      "height": 68,
+      "width": 136,
+      "x": 396,
+      "y": 176
+    },
+    "01a07403-c800-77c9-8876-18827f04923d": {
+      "collapsed": false,
+      "height": 68,
+      "width": 136,
+      "x": 396,
+      "y": 286
+    },
+    "01a07403-c800-787d-b17f-fb6d77097b84": {
+      "collapsed": false,
+      "height": 110,
+      "width": 290,
+      "x": 396,
+      "y": 616
+    },
+    "01a07403-c800-7964-b8d3-fed72d64bfd4": {
+      "collapsed": false,
+      "height": 68,
+      "width": 136,
+      "x": 396,
+      "y": 396
+    },
+    "01a07403-c800-7b7b-ad29-1c98800dca3b": {
+      "collapsed": false,
+      "height": 68,
+      "width": 136,
+      "x": 396,
+      "y": 506
+    },
+    "01a07403-c800-7c92-a31d-d90391626038": {
+      "collapsed": false,
+      "height": 96,
+      "width": 290,
+      "x": 396,
+      "y": 44
+    },
+    "01a07403-c800-7d89-9517-725bc751d480": {
+      "collapsed": false,
+      "height": 128,
+      "width": 238,
+      "x": 40,
+      "y": 40
+    }
+  },
+  "schematic": "agent",
+  "version": 1,
+  "viewport": {
+    "x": 206.35627143623992,
+    "y": -34.0706998363612,
+    "zoom": 2
+  }
+}
